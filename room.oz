@@ -2,6 +2,10 @@ functor
 import
    QTk at 'x-oz://system/wp/QTk.ozf'
    OS
+export
+   drawMap:DrawMap
+   drawImg:DrawImg
+   window:Window
 define
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -64,9 +68,6 @@ define
 	 thread {DrawRow Map.J 1 J} end
 	 if J \= {Width Map} then thread {DrawRows Map J+1} end end
       end
-      proc {DrawImg X Y Image}
-	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
-      end
    in
       case Map
       of map(r(...) ...) then
@@ -76,6 +77,9 @@ define
       else skip
       end
    end
+   proc {DrawImg X Y Image}
+	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
+      end
 in
    {DrawMap Map}
    {Canvas set(width:WidthMap height:HeightMap)}
