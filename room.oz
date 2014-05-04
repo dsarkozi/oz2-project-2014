@@ -14,6 +14,8 @@ export
    food:FOOD
    meds:MEDS
    door:DOOR
+   brave:BRAVE
+   zombie:ZOMBIE
    getComponent:GetComponent
 define
    Canvas
@@ -38,6 +40,7 @@ define
    HeightMap = thread HeightCell*RowAm end
    
    CD = {OS.getCWD}
+   BraveIMG = {QTk.newImage photo(file:CD#'/images/brave.gif')}
    ZombieIMG = {QTk.newImage photo(file:CD#'/images/zombie.gif')}
    FoodIMG = {QTk.newImage photo(file:CD#'/images/food.gif')}
    BulletsIMG = {QTk.newImage photo(file:CD#'/images/bullets.gif')}
@@ -59,25 +62,21 @@ define
    FOOD = 3
    MEDS = 4
    DOOR = 5
+   BRAVE = 6
+   ZOMBIE = 7
 
    proc {DrawMap Map}
       proc {DrawRows Map Y}
 	 proc {DrawRow Row X Y}
 	    case Row
 	    of r(...) then
-	       if Row.X == FLOOR then {DrawImg X Y FloorIMG}
-	       elseif Row.X == WALL then {DrawImg X Y WallIMG}
-	       elseif Row.X == BULLETS then {DrawImg X Y BulletsIMG}
-	       elseif Row.X == FOOD then {DrawImg X Y FoodIMG}
-	       elseif Row.X == MEDS then {DrawImg X Y MedsIMG}
-	       elseif Row.X == DOOR then {DrawImg X Y DoorIMG}
+	       if Row.X == DOOR then
 		  DoorX = X
 		  DoorY = Y
-	       else skip
 	       end
+	       {DrawImg X Y Row.X}
 	       if X \= {Width Row} then thread {DrawRow Row X+1 Y} end end
-	    else skip
-	    end
+	    else skip end
 	 end
       in
 	 thread {DrawRow Map.Y 1 Y} end
@@ -92,10 +91,22 @@ define
       else skip
       end
    end
-   proc {DrawImg X Y Image}
-	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
+   proc {DrawImg X Y Component}
+      Image in
+      if Component == FLOOR then Image = FloorIMG
+      elseif Component == WALL then Image = WallIMG
+      elseif Component == BULLETS then Image = BulletsIMG
+      elseif Component == FOOD then Image = FoodIMG
+      elseif Component == MEDS then Image = MedsIMG
+      elseif Component == DOOR then Image = DoorIMG
+      elseif Component == BRAVE then Image = BraveIMG
+      elseif Component == ZOMBIE then Image = ZombieIMG
+      else skip
+      end
+	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell
+			image:Image anchor:nw)}
    end
-
+   
    fun {GetComponent X Y}
       Map.Y.X
    end
