@@ -61,27 +61,27 @@ define
    DOOR = 5
 
    proc {DrawMap Map}
-      proc {DrawRows Map J}
-	 proc {DrawRow Row I J}
+      proc {DrawRows Map Y}
+	 proc {DrawRow Row X Y}
 	    case Row
 	    of r(...) then
-	       if Row.I == FLOOR then {DrawImg I J FloorIMG}
-	       elseif Row.I == WALL then {DrawImg I J WallIMG}
-	       elseif Row.I == BULLETS then {DrawImg I J BulletsIMG}
-	       elseif Row.I == FOOD then {DrawImg I J FoodIMG}
-	       elseif Row.I == MEDS then {DrawImg I J MedsIMG}
-	       elseif Row.I == DOOR then {DrawImg I J DoorIMG}
-		  DoorX = I
-		  DoorY = J
+	       if Row.X == FLOOR then {DrawImg X Y FloorIMG}
+	       elseif Row.X == WALL then {DrawImg X Y WallIMG}
+	       elseif Row.X == BULLETS then {DrawImg X Y BulletsIMG}
+	       elseif Row.X == FOOD then {DrawImg X Y FoodIMG}
+	       elseif Row.X == MEDS then {DrawImg X Y MedsIMG}
+	       elseif Row.X == DOOR then {DrawImg X Y DoorIMG}
+		  DoorX = X
+		  DoorY = Y
 	       else skip
 	       end
-	       if I \= {Width Row} then thread {DrawRow Row I+1 J} end end
+	       if X \= {Width Row} then thread {DrawRow Row X+1 Y} end end
 	    else skip
 	    end
 	 end
       in
-	 thread {DrawRow Map.J 1 J} end
-	 if J \= {Width Map} then thread {DrawRows Map J+1} end end
+	 thread {DrawRow Map.Y 1 Y} end
+	 if Y \= {Width Map} then thread {DrawRows Map Y+1} end end
       end
    in
       case Map
