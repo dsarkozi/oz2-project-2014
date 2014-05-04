@@ -6,6 +6,15 @@ export
    drawMap:DrawMap
    drawImg:DrawImg
    window:Window
+   map:Map
+   doorX:DoorX
+   doorY:DoorY
+   floor:FLOOR
+   wall:WALL
+   bullets:BULLETS
+   food:FOOD
+   meds:MEDS
+   door:DOOR
 define
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -29,7 +38,6 @@ define
    HeightMap = thread HeightCell*RowAm end
    
    CD = {OS.getCWD}
-   BraveIMG = {QTk.newImage photo(file:CD#'/images/brave.gif')}
    ZombieIMG = {QTk.newImage photo(file:CD#'/images/zombie.gif')}
    FoodIMG = {QTk.newImage photo(file:CD#'/images/food.gif')}
    BulletsIMG = {QTk.newImage photo(file:CD#'/images/bullets.gif')}
@@ -41,13 +49,18 @@ define
    Desc = td(title:"ZombieLand" canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
+   DoorX
+   DoorY
+
+   %% Map static constants %%
+   FLOOR = 0
+   WALL = 1
+   BULLETS = 2
+   FOOD = 3
+   MEDS = 4
+   DOOR = 5
+
    proc {DrawMap Map}
-      FLOOR = 0
-      WALL = 1
-      BULLETS = 2
-      FOOD = 3
-      MEDS = 4
-      DOOR = 5
       proc {DrawRows Map J}
 	 proc {DrawRow Row I J}
 	    case Row
@@ -58,6 +71,8 @@ define
 	       elseif Row.I == FOOD then {DrawImg I J FoodIMG}
 	       elseif Row.I == MEDS then {DrawImg I J MedsIMG}
 	       elseif Row.I == DOOR then {DrawImg I J DoorIMG}
+		  DoorX = I
+		  DoorY = J
 	       else skip
 	       end
 	       if I \= {Width Row} then thread {DrawRow Row I+1 J} end end
