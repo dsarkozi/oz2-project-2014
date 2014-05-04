@@ -6,7 +6,6 @@ export
    drawMap:DrawMap
    drawImg:DrawImg
    window:Window
-   map:Map
    doorX:DoorX
    doorY:DoorY
    floor:FLOOR
@@ -15,6 +14,7 @@ export
    food:FOOD
    meds:MEDS
    door:DOOR
+   getPosType:GetPosType
 define
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -94,7 +94,11 @@ define
    end
    proc {DrawImg X Y Image}
 	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
-      end
+   end
+
+   fun {GetPosType X Y}
+      Map.Y.X
+   end
 in
    {DrawMap Map}
    {Canvas set(width:WidthMap height:HeightMap)}
