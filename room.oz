@@ -12,14 +12,14 @@ define
    HeightMap = HeightCell*RowAm
    
    CD = {OS.getCWD}
-   BraveIMG = {QTk.newImage photo(file:CD#'/brave.gif')}
-   ZombieIMG = {QTk.newImage photo(file:CD#'/zombie.gif')}
-   FoodIMG = {QTk.newImage photo(file:CD#'/food.gif')}
-   BulletsIMG = {QTk.newImage photo(file:CD#'/bullets.gif')}
-   MedsIMG = {QTk.newImage photo(file:CD#'/medicine.gif')}
-   FloorIMG = {QTk.newImage photo(file:CD#'/floor.gif')}
-   WallIMG = {QTk.newImage photo(file:CD#'/wall.gif')}
-   DoorIMG = {QTk.newImage photo(file:CD#'/door.gif')}
+   BraveIMG = {QTk.newImage photo(file:CD#'/images/brave.gif')}
+   ZombieIMG = {QTk.newImage photo(file:CD#'/images/zombie.gif')}
+   FoodIMG = {QTk.newImage photo(file:CD#'/images/food.gif')}
+   BulletsIMG = {QTk.newImage photo(file:CD#'/images/bullets.gif')}
+   MedsIMG = {QTk.newImage photo(file:CD#'/images/medicine.gif')}
+   FloorIMG = {QTk.newImage photo(file:CD#'/images/floor.gif')}
+   WallIMG = {QTk.newImage photo(file:CD#'/images/wall.gif')}
+   DoorIMG = {QTk.newImage photo(file:CD#'/images/door.gif')}
    
    Desc = td(title:"ZombieLand" canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
