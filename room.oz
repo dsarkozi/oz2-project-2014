@@ -4,12 +4,25 @@ import
    OS
 define
    Canvas
+   Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
+	     r(1 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	     r(1 0 3 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
+	     r(1 0 4 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1)
+	     r(1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 4 0 1)
+	     r(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
    WidthCell = 40
    HeightCell = 40
-   RowAm = 20
-   ColAm = 20
-   WidthMap = WidthCell*ColAm
-   HeightMap = HeightCell*RowAm
+   RowAm
+   ColAm
+   WidthMap = thread WidthCell*ColAm end
+   HeightMap = thread HeightCell*RowAm end
    
    CD = {OS.getCWD}
    BraveIMG = {QTk.newImage photo(file:CD#'/images/brave.gif')}
@@ -56,11 +69,15 @@ define
       end
    in
       case Map
-      of map(...) then {DrawRows Map 1}
+      of map(r(...) ...) then
+	 RowAm = {Width Map}
+	 ColAm = {Width Map.1}
+	 {DrawRows Map 1}
       else skip
       end
    end
 in
-   {DrawMap map(r(1 1 5 1 1) r(1 2 3 4 1) r(1 0 0 0 1) r(1 1 1 1 1))}
+   {DrawMap Map}
+   {Canvas set(width:WidthMap height:HeightMap)}
    {Window show}
 end
