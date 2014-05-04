@@ -43,13 +43,13 @@ define
 	       elseif Row.I == DOOR then {DrawImg I J DoorIMG}
 	       else skip
 	       end
-	       if I \= {Width Row} then {DrawRow Row I+1 J} end
+	       if I \= {Width Row} then thread {DrawRow Row I+1 J} end end
 	    else skip
 	    end
 	 end
       in
-	 {DrawRow Map.J 1 J}
-	 if J \= {Width Map} then {DrawRows Map J+1} end
+	 thread {DrawRow Map.J 1 J} end
+	 if J \= {Width Map} then thread {DrawRows Map J+1} end end
       end
       proc {DrawImg X Y Image}
 	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
