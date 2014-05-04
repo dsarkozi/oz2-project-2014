@@ -14,7 +14,7 @@ export
    food:FOOD
    meds:MEDS
    door:DOOR
-   getPosType:GetPosType
+   getComponent:GetComponent
 define
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -96,7 +96,7 @@ define
 	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell image:Image anchor:nw)}
    end
 
-   fun {GetPosType X Y}
+   fun {GetComponent X Y}
       Map.Y.X
    end
 in
