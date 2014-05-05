@@ -39,7 +39,10 @@ define
 	    %% Get stuff on floor %%
 	 %[] getStuff|T then
 	    %% End the turn %%
-	 %[] endTurn|T then
+	 [] endTurn|T then
+	    LastX = X
+	    LastY = Y
+	    T
 	 %else
 	 end
       end
