@@ -10,18 +10,23 @@ define
    {Window bind(event:"<Left>" action:CommandsPort#r(~1 0))}
    {Window bind(event:"<Down>" action:CommandsPort#r(0 1))}
    {Window bind(event:"<Right>" action:CommandsPort#r(1 0))}
-   {Window bind(event:"<space>" action:CommandsPort#getStuff)}
+   {Window bind(event:"<space>" action:CommandsPort#collect)}
    {Window bind(event:"<Return>" action:CommandsPort#endTurn)}
 
    proc {Init}
       {Wait Room.loadingDone}
       {Room.drawImg Room.doorX Room.doorY Room.brave}
-      {Room.drawImg Room.doorX Room.doorY Room.brave}
    end
 
-   proc {Input OldX OldY Commands}
+   fun {Collect X Y}
+      Component in
+      Component = {Room.getComponent X Y}
+      Component
+   end
+
+   proc {Input OldX OldY Commands Collected}
       NewX NewY NextCommand
-      fun {InputCommand Commands Steps X Y LastX LastY}
+      fun {InputCommand Commands Steps Collected X Y LastX LastY}
 	 NextX NextY Component in
 	 case Commands
 	    %% Movement requested %%
@@ -31,15 +36,22 @@ define
 	    if Steps == MAXSTEP
 	       orelse {Room.getComponent NextX NextY} == Room.wall
 	    then
-	       {InputCommand T Steps X Y LastX LastY}
+	       {InputCommand T Steps Collected X Y LastX LastY}
 	    else
 	       Component = {Room.getComponent X Y}
 	       {Room.drawImg X Y Component}
 	       {Room.drawImg NextX NextY Room.brave}
-	       {InputCommand T Steps+1 NextX NextY LastX LastY}
+	       {InputCommand T Steps+1 Collected NextX NextY LastX LastY}
 	    end
 	    %% Get stuff on floor %%
-	 %[] getStuff|T then
+	 [] collect|T then
+	    if Steps == MAXSTEP then
+	       {InputCommand T Steps Collected X Y LastX LastY}
+	    else
+	       Stuff in
+	       Stuff = {Collect X Y}
+	       {InputCommand T Steps+1 Collected+1 X Y LastX LastY}
+	    end
 	    %% End the turn %%
 	 [] endTurn|T then
 	    LastX = X
@@ -49,10 +61,10 @@ define
 	 end
       end
    in
-      NextCommand = {InputCommand Commands 0 OldX OldY NewX NewY}
-      {Input NewX NewY NextCommand}
+      NextCommand = {InputCommand Commands 0 Collected OldX OldY NewX NewY}
+      {Input NewX NewY NextCommand Collected}
    end
 in
    {Init}
-   {Input Room.doorX Room.doorY Commands}
+   {Input Room.doorX Room.doorY Commands 0}
 end

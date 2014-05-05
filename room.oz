@@ -17,6 +17,7 @@ export
    brave:BRAVE
    zombie:ZOMBIE
    getComponent:GetComponent
+   collectPort:CollectPort
    loadingDone:LoadingDone
 define
    LoadingDone
@@ -34,6 +35,8 @@ define
 	     r(1 0 4 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1)
 	     r(1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 4 0 1)
 	     r(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
+   Collect
+   CollectPort = {NewPort Collect}
    WidthCell = 40
    HeightCell = 40
    RowAm
@@ -75,14 +78,17 @@ define
 	       if Row.X == DOOR then
 		  DoorX = X
 		  DoorY = Y
+	       %elseif Row.X == BULLETS orelse Row.X == FOOD orelse Row.X == MEDS
+	       %then {Send CollectPort X#Y#Row.X}
 	       end
 	       {DrawImg X Y Row.X}
-	       if X \= {Width Row} then thread {DrawRow Row X+1 Y} end end
+	       if X \= {Width Row} then
+		  {DrawRow Row X+1 Y} end
 	    else skip end
 	 end
       in
-	 thread {DrawRow Map.Y 1 Y} end
-	 if Y \= {Width Map} then thread {DrawRows Map Y+1} end end
+	 {DrawRow Map.Y 1 Y}
+	 if Y \= {Width Map} then {DrawRows Map Y+1} end
       end
    in
       case Map
@@ -90,6 +96,7 @@ define
 	 RowAm = {Width Map}
 	 ColAm = {Width Map.1}
 	 {DrawRows Map 1}
+	 %{Send CollectPort nil}
       else skip
       end
    end
