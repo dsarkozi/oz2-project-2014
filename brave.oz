@@ -14,6 +14,8 @@ define
    {Window bind(event:"<Return>" action:CommandsPort#endTurn)}
 
    proc {Init}
+      {Wait Room.loadingDone}
+      {Room.drawImg Room.doorX Room.doorY Room.brave}
       {Room.drawImg Room.doorX Room.doorY Room.brave}
    end
 
