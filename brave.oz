@@ -16,6 +16,7 @@ define
    proc {Init}
       {Wait Room.loadingDone}
       {Room.drawImg Room.doorX Room.doorY Room.brave}
+      {Input Room.doorX Room.doorY Commands 0}
    end
 
    fun {Collect X Y}
@@ -66,5 +67,4 @@ define
    end
 in
    {Init}
-   {Input Room.doorX Room.doorY Commands 0}
 end
