@@ -84,7 +84,7 @@ define
 	    if {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
 	    then
 	       Resp = ok
-	       {UpdateMap Map X Y FLOOR}
+	       {UpdateMap Map X Y FLOOR#Comp}
 	    else
 	       Resp = failure
 	       Map
@@ -95,7 +95,7 @@ define
    in
       {DrawMap Map}
       {DrawImg DoorX DoorY BRAVE}
-      {Lib.newPortObject FRoom Map}
+      {Lib.newPortObject FRoom {UpdateMap Map DoorX DoorY DOOR#BRAVE}}
    end
    
    %% Map static constants %%
