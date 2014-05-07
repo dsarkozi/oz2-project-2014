@@ -1,70 +1,46 @@
 functor
 import
    Room at 'room.ozf'
+   Lib at 'lib.ozf'
+   Port
 define
+   Brave
+   NewPortObject = Lib.newPortObject
    Window = Room.window
-   MAXSTEP = 2
-   Commands
-   CommandsPort = {NewPort Commands}
-   {Window bind(event:"<Up>" action:CommandsPort#r(0 ~1))}
-   {Window bind(event:"<Left>" action:CommandsPort#r(~1 0))}
-   {Window bind(event:"<Down>" action:CommandsPort#r(0 1))}
-   {Window bind(event:"<Right>" action:CommandsPort#r(1 0))}
-   {Window bind(event:"<space>" action:CommandsPort#collect)}
-   {Window bind(event:"<Return>" action:CommandsPort#endTurn)}
+   {Window bind(event:"<Up>" action:Brave#r(0 ~1))}
+   {Window bind(event:"<Left>" action:Brave#r(~1 0))}
+   {Window bind(event:"<Down>" action:Brave#r(0 1))}
+   {Window bind(event:"<Right>" action:Brave#r(1 0))}
+   {Window bind(event:"<space>" action:Brave#collect)}
+   {Window bind(event:"<Return>" action:Brave#endTurn)}
 
-   proc {Init}
-      {Wait Room.loadingDone}
-      {Room.drawImg Room.doorX Room.doorY Room.brave}
-      {Input Room.doorX Room.doorY Commands 0}
-   end
-
-   fun {Collect X Y}
-      Component in
-      Component = {Room.getComponent X Y}
-      Component
-   end
-
-   proc {Input OldX OldY Commands Collected}
-      NewX NewY NextCommand
-      fun {InputCommand Commands Steps Collected X Y LastX LastY}
-	 NextX NextY Component in
-	 case Commands
-	    %% Movement requested %%
-	 of r(DX DY)|T then
-	    NextX = X + DX
-	    NextY = Y + DY
-	    if Steps == MAXSTEP
-	       orelse {Room.getComponent NextX NextY} == Room.wall
-	    then
-	       {InputCommand T Steps Collected X Y LastX LastY}
-	    else
-	       Component = {Room.getComponent X Y}
-	       {Room.drawImg X Y Component}
-	       {Room.drawImg NextX NextY Room.brave}
-	       {InputCommand T Steps+1 Collected NextX NextY LastX LastY}
+   fun {BraveInit}
+      fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
+	 Resp in
+	 case Msg
+	    %% Move request %%
+	 of r(DX DY) then NextX NextY in
+	    NextX = State.x + DX
+	    NextY = State.y + DY
+	    {Port.sendRecv Room.room move(Room.brave State.x State.y NextX NextY) Resp}
+	    if Resp == ok then
+	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	    else State
 	    end
-	    %% Get stuff on floor %%
-	 [] collect|T then
-	    if Steps == MAXSTEP then
-	       {InputCommand T Steps Collected X Y LastX LastY}
-	    else
-	       Stuff in
-	       Stuff = {Collect X Y}
-	       {InputCommand T Steps+1 Collected+1 X Y LastX LastY}
+	 [] collect then
+	    {Port.sendRecv Room.room interact(Room.brave State.x State.y) Resp}
+	    if Resp == ok then
+	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
+	    else State
 	    end
-	    %% End the turn %%
-	 [] endTurn|T then
-	    LastX = X
-	    LastY = Y
-	    T
-	 %else
+	 else State
 	 end
       end
    in
-      NextCommand = {InputCommand Commands 0 Collected OldX OldY NewX NewY}
-      {Input NewX NewY NextCommand Collected}
+      {Wait Room.loadingDone}
+      {NewPortObject FBrave
+       state(x:Room.doorX y:Room.doorY steps:0 collected:0 bullets:0)}
    end
 in
-   {Init}
+   Brave = {BraveInit}
 end
