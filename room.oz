@@ -5,6 +5,7 @@ import
    Lib at 'lib.ozf'
 export
    room:Room
+   window:Window
    doorX:DoorX
    doorY:DoorY
    floor:FLOOR
@@ -61,22 +62,38 @@ define
    DoorX
    DoorY
 
+   BRAVE_MAXSTEP = 2
+   ZOMBIE_MAXSTEP = 3
+
    fun {RoomInit Map}
       fun {FRoom Msg Map}
 	 case Msg
-	 of move(Comp OldX OldY NewX NewY) then
-	    {DrawImg OldX OldY {GetComponent Map OldX OldY}}
-	    {DrawImg NewX NewY Comp}
-	    Map
-	 [] collect(Comp X Y) then
-	    {SetComponent Map X Y Comp}
-	 [] destroy(Comp X Y) then
-	    {SetComponent Map X Y Comp}
+	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
+	    if {CheckAction movement(Comp Steps {GetComponent Map NewX NewY})}
+	    then
+	       {DrawImg OldX OldY {GetComponent Map OldX OldY}}
+	       {DrawImg NewX NewY Comp}
+	       Resp = ok
+	       Map %TODO
+	    else
+	       Resp = failure
+	       Map
+	    end
+	 [] interact(Comp X Y Steps)#Resp then
+	    if {CheckAction interaction(Comp Steps)}
+	    then
+	       Resp = ok
+	       {SetComponent Map X Y FLOOR}
+	    else
+	       Resp = failure
+	       Map
+	    end
 	 else Map
 	 end
       end
    in
       {DrawMap Map}
+      {DrawImg DoorX DoorY BRAVE}
       {NewPortObject FRoom Map}
    end
    
@@ -134,6 +151,26 @@ define
       end
 	 {Canvas create(image (X-1)*WidthCell (Y-1)*HeightCell
 			image:Image anchor:nw)}
+   end
+
+   fun {CheckAction Action}
+      case Action
+      of movement(comp:Comp steps:Steps compXY:CompXY) then
+	 if Comp == BRAVE then
+	    Steps \= BRAVE_MAXSTEP andthen CompXY \= WALL
+	    andthen CompXY \= ZOMBIE
+	 elseif Comp == ZOMBIE then
+	    Steps \= ZOMBIE_MAXSTEP andthen CompXY \= WALL
+	    andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
+	 else false
+	 end
+      [] interaction(comp:Comp steps:Steps) then
+	 if Comp == BRAVE then Steps \= BRAVE_MAXSTEP
+	 elseif Comp == ZOMBIE then Steps \= ZOMBIE_MAXSTEP
+	 else false
+	 end
+      else false
+      end
    end
    
    fun {GetComponent Map X Y}
