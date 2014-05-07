@@ -207,11 +207,13 @@ define
 	    else State
 	    end
 	 [] collect then
-	    {Port.sendRecv Room.room interact(BRAVE State.x State.y State.steps) Resp}
+	    {Port.sendRecv Room interact(BRAVE State.x State.y State.steps) Resp}
 	    if Resp == ok then
 	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
 	    else State
 	    end
+	 [] endTurn then
+	    {AdjoinList State [steps#0]}
 	 else State
 	 end
       end
