@@ -2,10 +2,9 @@ functor
 import
    QTk at 'x-oz://system/wp/QTk.ozf'
    OS
+   Lib at 'lib.ozf'
 export
-   drawMap:DrawMap
-   drawImg:DrawImg
-   window:Window
+   room:Room
    doorX:DoorX
    doorY:DoorY
    floor:FLOOR
@@ -20,6 +19,8 @@ export
    collectPort:CollectPort
    loadingDone:LoadingDone
 define
+   NewPortObject = Lib.newPortObject
+   Room
    LoadingDone
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -60,6 +61,25 @@ define
    DoorX
    DoorY
 
+   fun {RoomInit Map}
+      fun {FRoom Msg Map}
+	 case Msg
+	 of move(Comp OldX OldY NewX NewY) then
+	    {DrawImg OldX OldY {GetComponent Map OldX OldY}}
+	    {DrawImg NewX NewY Comp}
+	    Map
+	 [] collect(Comp X Y) then
+	    {SetComponent Map X Y Comp}
+	 [] destroy(Comp X Y) then
+	    {SetComponent Map X Y Comp}
+	 else Map
+	 end
+      end
+   in
+      {DrawMap Map}
+      {NewPortObject FRoom Map}
+   end
+   
    %% Map static constants %%
    FLOOR = 0
    WALL = 1
@@ -116,11 +136,15 @@ define
 			image:Image anchor:nw)}
    end
    
-   fun {GetComponent X Y}
+   fun {GetComponent Map X Y}
       Map.Y.X
    end
+
+   fun {SetComponent Map X Y Comp}
+      {AdjoinAt Map Y {AdjoinAt Map.Y X Comp}}
+   end
 in
-   {DrawMap Map}
+   Room = {RoomInit Map}
    {Canvas set(width:WidthMap height:HeightMap)}
    {Window show}
    LoadingDone = unit
