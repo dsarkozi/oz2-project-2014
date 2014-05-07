@@ -61,12 +61,17 @@ define
       fun {FRoom Msg Map}
 	 case Msg
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
-	    if {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
-	    then
-	       {DrawImg OldX OldY {GetComponent Map OldX OldY}}
-	       {DrawImg NewX NewY Comp}
-	       Resp = ok
-	       Map %TODO
+	    if {CheckCoordinates NewX NewY} then
+	       if {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
+	       then
+		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
+		  {DrawImg NewX NewY Comp}
+		  Resp = ok
+		  Map %TODO
+	       else
+		  Resp = failure
+		  Map
+	       end
 	    else
 	       Resp = failure
 	       Map
@@ -152,7 +157,7 @@ define
 	    Steps \= BRAVE_MAXSTEP andthen CompXY \= WALL
 	    andthen CompXY \= ZOMBIE
 	 elseif Comp == ZOMBIE then
-	    Steps \= ZOMBIE_MAXSTEP andthen CompXY \= WALL
+	    Steps \= ZOMBIE_MAXSTEP andthen CompXY \= WALL andthen CompXY \= DOOR
 	    andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
 	 else false
 	 end
@@ -163,6 +168,10 @@ define
 	 end
       else false
       end
+   end
+
+   fun {CheckCoordinates X Y}
+      X > 0 andthen Y > 0 andthen X =< ColAm andthen Y =< RowAm
    end
    
    fun {GetComponent Map X Y}
