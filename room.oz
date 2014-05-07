@@ -49,7 +49,11 @@ define
    WallIMG = {QTk.newImage photo(file:CD#'/images/wall.gif')}
    DoorIMG = {QTk.newImage photo(file:CD#'/images/door.gif')}
    
-   Desc = td(title:"ZombieLand" canvas(glue:nswe bg:white handle:Canvas))
+   Desc = td(title:"ZombieLand"
+	     lr(glue:nwe
+		label(glue:nw text:"Collectables:") label(glue:nw text:"2/3")
+		label(glue:ne text:"Bullets:") label(glue:ne text:3))
+	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
    DoorX
