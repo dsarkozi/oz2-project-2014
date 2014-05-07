@@ -16,13 +16,8 @@ export
    door:DOOR
    brave:BRAVE
    zombie:ZOMBIE
-   getComponent:GetComponent
-   collectPort:CollectPort
-   loadingDone:LoadingDone
 define
-   NewPortObject = Lib.newPortObject
    Room
-   LoadingDone
    Canvas
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
 	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
@@ -37,8 +32,6 @@ define
 	     r(1 0 4 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1)
 	     r(1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 4 0 1)
 	     r(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
-   Collect
-   CollectPort = {NewPort Collect}
    WidthCell = 40
    HeightCell = 40
    RowAm
@@ -62,14 +55,13 @@ define
    DoorX
    DoorY
 
-   BRAVE_MAXSTEP = 2
    ZOMBIE_MAXSTEP = 3
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
 	 case Msg
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
-	    if {CheckAction movement(Comp Steps {GetComponent Map NewX NewY})}
+	    if {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
 	    then
 	       {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 	       {DrawImg NewX NewY Comp}
@@ -80,10 +72,10 @@ define
 	       Map
 	    end
 	 [] interact(Comp X Y Steps)#Resp then
-	    if {CheckAction interaction(Comp Steps)}
+	    if {CheckAction interaction(comp:Comp steps:Steps)}
 	    then
 	       Resp = ok
-	       {SetComponent Map X Y FLOOR}
+	       {UpdateMap Map X Y FLOOR}
 	    else
 	       Resp = failure
 	       Map
@@ -94,7 +86,7 @@ define
    in
       {DrawMap Map}
       {DrawImg DoorX DoorY BRAVE}
-      {NewPortObject FRoom Map}
+      {Lib.newPortObject FRoom Map}
    end
    
    %% Map static constants %%
@@ -177,12 +169,51 @@ define
       Map.Y.X
    end
 
-   fun {SetComponent Map X Y Comp}
+   fun {UpdateMap Map X Y Comp}
       {AdjoinAt Map Y {AdjoinAt Map.Y X Comp}}
    end
+
+   %% ----- Brave Definitions ----- %%
+   Brave
+   BRAVE_MAXSTEP = 2
+   
+   {Window bind(event:"<Up>" action:Brave#r(0 ~1))}
+   {Window bind(event:"<Left>" action:Brave#r(~1 0))}
+   {Window bind(event:"<Down>" action:Brave#r(0 1))}
+   {Window bind(event:"<Right>" action:Brave#r(1 0))}
+   {Window bind(event:"<space>" action:Brave#collect)}
+   {Window bind(event:"<Return>" action:Brave#endTurn)}
+
+   fun {BraveInit}
+      fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
+	 Resp in
+	 case Msg
+	    %% Move request %%
+	 of r(DX DY) then NextX NextY in
+	    NextX = State.x + DX
+	    NextY = State.y + DY
+	    {Port.sendRecv Room move(BRAVE State.x State.y State.steps NextX NextY) Resp}
+	    if Resp == ok then
+	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	    else State
+	    end
+	 [] collect then
+	    {Port.sendRecv Room.room interact(BRAVE State.x State.y State.steps) Resp}
+	    if Resp == ok then
+	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
+	    else State
+	    end
+	 else State
+	 end
+      end
+   in
+      {Lib.newPortObject FBrave
+       state(x:DoorX y:DoorY steps:0 collected:0 bullets:0)}
+   end
+
 in
    Room = {RoomInit Map}
    {Canvas set(width:WidthMap height:HeightMap)}
    {Window show}
-   LoadingDone = unit
+   Brave = {BraveInit}
 end
