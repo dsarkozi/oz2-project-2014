@@ -22,13 +22,13 @@ define
 	 of r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
-	    {Port.sendRecv Room.room move(Room.brave State.x State.y NextX NextY) Resp}
+	    {Port.sendRecv Room.room move(Room.brave State.x State.y State.steps NextX NextY) Resp}
 	    if Resp == ok then
 	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	    else State
 	    end
 	 [] collect then
-	    {Port.sendRecv Room.room interact(Room.brave State.x State.y) Resp}
+	    {Port.sendRecv Room.room interact(Room.brave State.x State.y State.steps) Resp}
 	    if Resp == ok then
 	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
 	    else State
