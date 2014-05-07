@@ -71,7 +71,7 @@ define
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
 		  Resp = ok
-		  Map %TODO
+		  {UpdateMoveMap Map OldX OldY NewX NewY}
 	       else
 		  Resp = failure
 		  Map
@@ -81,7 +81,7 @@ define
 	       Map
 	    end
 	 [] interact(Comp X Y Steps)#Resp then
-	    if {CheckAction interaction(comp:Comp steps:Steps)}
+	    if {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
 	    then
 	       Resp = ok
 	       {UpdateMap Map X Y FLOOR}
@@ -165,9 +165,10 @@ define
 	    andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
 	 else false
 	 end
-      [] interaction(comp:Comp steps:Steps) then
-	 if Comp == BRAVE then Steps \= BRAVE_MAXSTEP
-	 elseif Comp == ZOMBIE then Steps \= ZOMBIE_MAXSTEP
+      [] interaction(comp:Comp steps:Steps compXY:CompXY) then Collectable in
+	 Collectable = (CompXY == FOOD orelse CompXY == BULLETS orelse CompXY == MEDS)
+	 if Comp == BRAVE then Steps \= BRAVE_MAXSTEP andthen Collectable
+	 elseif Comp == ZOMBIE then Steps \= ZOMBIE_MAXSTEP andthen Collectable
 	 else false
 	 end
       else false
@@ -179,11 +180,22 @@ define
    end
    
    fun {GetComponent Map X Y}
-      Map.Y.X
+      case Map.Y.X
+      of Dead#_ then Dead
+      else Map.Y.X
+      end
    end
 
    fun {UpdateMap Map X Y Comp}
       {AdjoinAt Map Y {AdjoinAt Map.Y X Comp}}
+   end
+
+   fun {UpdateMoveMap Map OldX OldY NewX NewY}
+      case Map.OldY.OldX
+      of Dead#Live then
+	 {UpdateMap {UpdateMap Map NewX NewY {GetComponent Map NewX NewY}#Live} OldX OldY Dead}
+      else Map
+      end
    end
 
    %% ----- Brave Definitions ----- %%
