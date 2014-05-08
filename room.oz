@@ -188,7 +188,7 @@ define
       of movement(comp:Comp steps:Steps compXY:CompXY) then
 	 if Comp == BRAVE then
 	    Steps \= BRAVE_MAXSTEP andthen CompXY \= WALL
-	    andthen CompXY \= ZOMBIE
+	    andthen CompXY \= ZOMBIE andthen CompXY \= BRAVE
 	 elseif Comp == ZOMBIE then
 	    Steps \= ZOMBIE_MAXSTEP andthen CompXY \= WALL andthen CompXY \= DOOR
 	    andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
