@@ -90,9 +90,9 @@ define
    in
       {DrawMap Map}
       {DrawImg Door.x Door.y BRAVE}
-      Brave = {BraveInit Door.x Door.y}
+      {BraveInit}
       {DrawImg 5 5 ZOMBIE}
-      Zombies = {ZombieInit 5 5}
+      {ZombiesInit 1}
       {Lib.newPortObject FRoom {UpdateMap Map Door.x Door.y DOOR#BRAVE}}
    end
    
@@ -206,7 +206,7 @@ define
    {Window bind(event:"<space>" action:Brave#collect)}
    {Window bind(event:"<Return>" action:Brave#endTurn)}
 
-   fun {BraveInit X Y}
+   proc {BraveInit}
       fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
 	 Resp in
 	 case Msg
@@ -231,8 +231,8 @@ define
 	 end
       end
    in
-      {Lib.newPortObject FBrave
-       state(x:X y:Y steps:0 collected:0 bullets:0)}
+      Brave = {Lib.newPortObject FBrave
+       state(x:Door.x y:Door.y steps:0 collected:0 bullets:0)}
    end
 
    %% ----- Zombie Definitions ----- %%
@@ -253,7 +253,7 @@ define
       end
    end
    
-   fun {ZombieInit X Y}
+   proc {ZombiesInit N}
       fun {FZombie Msg State} %% state(x: y: steps: )
 	 Resp in
 	 case Msg
@@ -277,8 +277,16 @@ define
 	 else State
 	 end
       end
+      fun {ZGenerator FZ N}
+	  if N == 0 then nil
+	  else X Y in
+	     %% Generate X and Y %%
+	     X = 5 Y = 5
+	     {Lib.newPortObject FZ state(x:X y:Y steps:0)}|{ZGenerator FZ N-1}
+	  end
+      end
    in
-      {Lib.newPortObject FZombie state(x:X y:Y steps:0)}
+      Zombies = {List.toTuple zombies {ZGenerator FZombie N}}
    end
 in
    Room = {RoomInit Map}
