@@ -111,6 +111,13 @@ define
 	       Resp = failure
 	       Map
 	    end
+	 [] zombiesTurn then
+	    for I in 1..{Width Zombies} do
+	       Resp in
+	       {Port.sendRecv Zombies.I zombie Resp}
+	       {Send Zombies.I {ZCompass Resp}}
+	    end
+	    Map
 	 else Map
 	 end
       end
@@ -275,6 +282,7 @@ define
 	    else State
 	    end
 	 [] endTurn then
+	    {Send Room zombiesTurn}
 	    {AdjoinList State [steps#0]}
 	 else State
 	 end
@@ -306,6 +314,9 @@ define
 	 Resp in
 	 case Msg
 	 of init(X Y) then {AdjoinList State [x#X y#Y]}
+	 [] zombie#RoomResp then
+	    RoomResp = State.facing
+	    {AdjoinAt State steps 0}
 	 [] r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
