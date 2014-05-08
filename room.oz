@@ -6,8 +6,6 @@ import
 export
    room:Room
    window:Window
-   doorX:DoorX
-   doorY:DoorY
    floor:FLOOR
    wall:WALL
    bullets:BULLETS
@@ -56,8 +54,7 @@ define
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
-   DoorX
-   DoorY
+   Door = door()
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
@@ -92,9 +89,10 @@ define
       end
    in
       {DrawMap Map}
-      {DrawImg DoorX DoorY BRAVE}
+      {DrawImg Door.x Door.y BRAVE}
+      Brave = {BraveInit Door.x Door.y}
       %% Draw Zombies here %%
-      {Lib.newPortObject FRoom {UpdateMap Map DoorX DoorY DOOR#BRAVE}}
+      {Lib.newPortObject FRoom {UpdateMap Map Door.x Door.y DOOR#BRAVE}}
    end
    
    %% Map static constants %%
@@ -113,8 +111,8 @@ define
 	    case Row
 	    of r(...) then
 	       if Row.X == DOOR then
-		  DoorX = X
-		  DoorY = Y
+		  Door.x = X
+		  Door.y = Y
 	       %elseif Row.X == BULLETS orelse Row.X == FOOD orelse Row.X == MEDS
 	       %then {Send CollectPort X#Y#Row.X}
 	       end
@@ -208,7 +206,7 @@ define
    {Window bind(event:"<space>" action:Brave#collect)}
    {Window bind(event:"<Return>" action:Brave#endTurn)}
 
-   fun {BraveInit}
+   fun {BraveInit X Y}
       fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
 	 Resp in
 	 case Msg
@@ -234,7 +232,7 @@ define
       end
    in
       {Lib.newPortObject FBrave
-       state(x:DoorX y:DoorY steps:0 collected:0 bullets:0)}
+       state(x:X y:Y steps:0 collected:0 bullets:0)}
    end
 
    %% ----- Zombie Definitions ----- %%
@@ -286,5 +284,4 @@ in
    Room = {RoomInit Map}
    {Canvas set(width:WidthMap height:HeightMap)}
    {Window show}
-   Brave = {BraveInit}
 end
