@@ -54,7 +54,7 @@ define
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
-   Door = door()
+   Door
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
@@ -91,7 +91,8 @@ define
       {DrawMap Map}
       {DrawImg Door.x Door.y BRAVE}
       Brave = {BraveInit Door.x Door.y}
-      %% Draw Zombies here %%
+      {DrawImg 5 5 ZOMBIE}
+      Zombies = {ZombieInit 5 5}
       {Lib.newPortObject FRoom {UpdateMap Map Door.x Door.y DOOR#BRAVE}}
    end
    
@@ -111,8 +112,7 @@ define
 	    case Row
 	    of r(...) then
 	       if Row.X == DOOR then
-		  Door.x = X
-		  Door.y = Y
+		  Door = door(x:X y:Y)
 	       %elseif Row.X == BULLETS orelse Row.X == FOOD orelse Row.X == MEDS
 	       %then {Send CollectPort X#Y#Row.X}
 	       end
