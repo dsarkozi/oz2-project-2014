@@ -243,18 +243,17 @@ define
    WEST = 2
    EAST = 3
 
-   fun {ZRand}
-      Rand in
-      Rand = {OS.rand} mod 4
-      if Rand == NORTH then r(0 1)
-      elseif Rand == SOUTH then r(0 ~1)
-      elseif Rand == WEST then r(~1 0)
-      elseif Rand == EAST then r(1 0)
+   fun {ZCompass D}
+      if D == NORTH then r(0 1)
+      elseif D == SOUTH then r(0 ~1)
+      elseif D == WEST then r(~1 0)
+      elseif D == EAST then r(1 0)
+      else r(0 0)
       end
    end
    
    proc {ZombiesInit N}
-      fun {FZombie Msg State} %% state(x: y: steps: )
+      fun {FZombie Msg State} %% state(x: y: steps: facing: )
 	 Resp in
 	 case Msg
 	 of r(DX DY) then NextX NextY in
@@ -282,7 +281,7 @@ define
 	  else X Y in
 	     %% Generate X and Y %%
 	     X = 5 Y = 5
-	     {Lib.newPortObject FZ state(x:X y:Y steps:0)}|{ZGenerator FZ N-1}
+	     {Lib.newPortObject FZ state(x:X y:Y steps:0 facing:{OS.rand} mod 4)}|{ZGenerator FZ N-1}
 	  end
       end
    in
