@@ -59,8 +59,6 @@ define
    DoorX
    DoorY
 
-   ZOMBIE_MAXSTEP = 3
-
    fun {RoomInit Map}
       fun {FRoom Msg Map}
 	 case Msg
@@ -95,6 +93,7 @@ define
    in
       {DrawMap Map}
       {DrawImg DoorX DoorY BRAVE}
+      %% Draw Zombies here %%
       {Lib.newPortObject FRoom {UpdateMap Map DoorX DoorY DOOR#BRAVE}}
    end
    
@@ -238,6 +237,51 @@ define
        state(x:DoorX y:DoorY steps:0 collected:0 bullets:0)}
    end
 
+   %% ----- Zombie Definitions ----- %%
+   Zombies
+   ZOMBIE_MAXSTEP = 3
+   NORTH = 0
+   SOUTH = 1
+   WEST = 2
+   EAST = 3
+
+   fun {ZRand}
+      Rand in
+      Rand = {OS.rand} mod 4
+      if Rand == NORTH then r(0 1)
+      elseif Rand == SOUTH then r(0 ~1)
+      elseif Rand == WEST then r(~1 0)
+      elseif Rand == EAST then r(1 0)
+      end
+   end
+   
+   fun {ZombieInit X Y}
+      fun {FZombie Msg State} %% state(x: y: steps: )
+	 Resp in
+	 case Msg
+	 of r(DX DY) then NextX NextY in
+	    NextX = State.x + DX
+	    NextY = State.y + DY
+	    {Port.sendRecv Room move(ZOMBIE State.x State.y State.steps NextX NextY) Resp}
+	    if Resp == ok then
+	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	    else State
+	    end
+	 [] destroy then
+	    if {OS.rand} mod 5 == 0 then
+	       {Port.sendRecv Room interact(ZOMBIE State.x State.y State.steps) Resp}
+	       if Resp == ok then
+		  {AdjoinList State [steps#State.steps+1]}
+	       else State
+	       end
+	    else State
+	    end
+	 else State
+	 end
+      end
+   in
+      {Lib.newPortObject FZombie state(x:X y:Y steps:0)}
+   end
 in
    Room = {RoomInit Map}
    {Canvas set(width:WidthMap height:HeightMap)}
