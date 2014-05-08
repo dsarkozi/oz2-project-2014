@@ -36,6 +36,33 @@ define
    ColAm
    WidthMap = thread WidthCell*ColAm end
    HeightMap = thread HeightCell*RowAm end
+   EmptyCells = {Lib.newPortObject
+		 fun {$ Msg State}
+		    fun {DropUnit L I}
+		       case L
+		       of H|T then
+			  if I == 1 then T
+			  else H|{DropUnit T I-1}
+			  end
+		       else L
+		       end
+		    end
+		 in
+		    case Msg
+		    of add(X Y) then NewLength in
+		       NewLength = State.length + 1
+		       {AdjoinList State [length#NewLength list#((X#Y)|State.list)]}
+		    [] request#Resp then
+		       if State.length == 0 then Resp = empty
+		       else I in
+			  I = ({OS.rand} mod State.length) + 1
+			  Resp = {Nth State.list I}
+			  {AdjoinList State [length#State.length-1 list#{DropUnit State.list I}]}
+		       end
+		    [] empty then emptied
+		    else State
+		    end
+		 end empty(length:0 list:nil)}
    
    CD = {OS.getCWD}
    BraveIMG = {QTk.newImage photo(file:CD#'/images/brave.gif')}
@@ -89,11 +116,9 @@ define
       end
    in
       {DrawMap Map}
-      {DrawImg Door.x Door.y BRAVE}
       {BraveInit}
-      {DrawImg 5 5 ZOMBIE}
-      {ZombiesInit 1}
-      {Lib.newPortObject FRoom {UpdateMap Map Door.x Door.y DOOR#BRAVE}}
+      {ZombiesInit 5} %% 173 max %%
+      {Lib.newPortObject FRoom {InitMap Map}}
    end
    
    %% Map static constants %%
@@ -111,12 +136,13 @@ define
 	 proc {DrawRow Row X Y}
 	    case Row
 	    of r(...) then
+	       if Row.X == FLOOR then {Send EmptyCells add(X Y)} end
 	       if Row.X == DOOR then
 		  Door = door(x:X y:Y)
-	       %elseif Row.X == BULLETS orelse Row.X == FOOD orelse Row.X == MEDS
-	       %then {Send CollectPort X#Y#Row.X}
+		  {DrawImg X Y BRAVE}
+	       else
+		  {DrawImg X Y Row.X}
 	       end
-	       {DrawImg X Y Row.X}
 	       if X \= {Width Row} then
 		  {DrawRow Row X+1 Y} end
 	    else skip end
@@ -131,7 +157,6 @@ define
 	 RowAm = {Width Map}
 	 ColAm = {Width Map.1}
 	 {DrawRows Map 1}
-	 %{Send CollectPort nil}
       else skip
       end
    end
@@ -195,6 +220,30 @@ define
       end
    end
 
+   fun {InitMap Map}
+      ResMap
+      fun {UsableSpace}
+	 Resp in
+	 {Port.sendRecv EmptyCells request Resp}
+	 Resp
+      end
+      fun {InitZombieMap Map N}
+	 case {UsableSpace}
+	 of X#Y then
+	    {DrawImg X Y ZOMBIE}
+	    {Send Zombies.N init(X Y)}
+	    if N == 1 then {UpdateMap Map X Y {GetComponent Map X Y}#ZOMBIE}
+	    else {InitZombieMap {UpdateMap Map X Y {GetComponent Map X Y}#ZOMBIE} N-1}
+	    end
+	 else raise 'No more usable space' end
+	 end
+      end
+   in
+      ResMap = {UpdateMap {InitZombieMap Map {Width Zombies}} Door.x Door.y DOOR#BRAVE}
+      {Send EmptyCells empty}
+      ResMap
+   end
+
    %% ----- Brave Definitions ----- %%
    Brave
    BRAVE_MAXSTEP = 2
@@ -256,7 +305,8 @@ define
       fun {FZombie Msg State} %% state(x: y: steps: facing: )
 	 Resp in
 	 case Msg
-	 of r(DX DY) then NextX NextY in
+	 of init(X Y) then {AdjoinList State [x#X y#Y]}
+	 [] r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
 	    {Port.sendRecv Room move(ZOMBIE State.x State.y State.steps NextX NextY) Resp}
@@ -278,10 +328,8 @@ define
       end
       fun {ZGenerator FZ N}
 	  if N == 0 then nil
-	  else X Y in
-	     %% Generate X and Y %%
-	     X = 5 Y = 5
-	     {Lib.newPortObject FZ state(x:X y:Y steps:0 facing:{OS.rand} mod 4)}|{ZGenerator FZ N-1}
+	  else
+	     {Lib.newPortObject FZ state(steps:0 facing:{OS.rand} mod 4)}|{ZGenerator FZ N-1}
 	  end
       end
    in
