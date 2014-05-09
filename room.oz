@@ -7,6 +7,7 @@ import
    Application
 define
    Room
+   Door
    Canvas
    Map = Main.map
    NZombies = Main.zombie
@@ -14,7 +15,7 @@ define
    NBullets = Main.bullet
    
    CollectTXT
-   TurnText
+   TurnTXT
    BulletsTXT
    WidthCell = 40
    HeightCell = 40
@@ -62,13 +63,11 @@ define
 
    Desc = td(title:"ZombieLand"
 	     lr(glue:nwe
-		label(glue:nw text:"Collect:") label(glue:nw text:3 handle:CollectTXT)
-		label(glue:n text:"Brave's turn" handle:TurnText)
-		label(glue:ne text:"Bullets:") label(glue:ne text:3 handle:BulletsTXT))
+		label(glue:nw text:"Collect:") label(glue:nw text:NItems handle:CollectTXT)
+		label(glue:n text:"Brave's turn" handle:TurnTXT)
+		label(glue:ne text:"Bullets:") label(glue:ne text:NBullets handle:BulletsTXT))
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
-
-   Door
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
@@ -120,11 +119,11 @@ define
 	    else Map
 	    end
 	 [] zombiesTurn then Resp in
-	    {TurnText set(text:"Zombies' turn")}
+	    {TurnTXT set(text:"Zombies' turn")}
 	    {Port.sendRecv Zombies getAmount Resp}
 	    if Resp == 0 then
 	       {Send Brave brave}
-	       {TurnText set(text:"Brave's turn")}
+	       {TurnTXT set(text:"Brave's turn")}
 	       Map
 	    else
 	       {Send Zombies sendAll(zombie)}
@@ -140,7 +139,7 @@ define
 	    {Port.sendRecv Zombies getAmount Resp}
 	    if ZDone >= Resp then
 	       {Send Brave brave}
-	       {TurnText set(text:"Brave's turn")}
+	       {TurnTXT set(text:"Brave's turn")}
 	       {Record.subtract Map zombiesDone}
 	    else
 	       {AdjoinAt Map zombiesDone ZDone}
@@ -155,12 +154,11 @@ define
 	    Map
 	 [] endGame(B) then
 	    if B then
-	       {TurnText set(text:"Winner !")}
+	       {TurnTXT set(text:"Winner !")}
 	    else
-	       {TurnText set(text:"Loser !")}
+	       {TurnTXT set(text:"Loser !")}
 	    end
 	    {Window wait}
-	    {Canvas tkClose()}
 	    {Application.exit 0}
 	    Map
 	 else Map
@@ -168,8 +166,8 @@ define
       end
    in
       {DrawMap Map}
-      {BraveInit}
-      {ZombiesInit 5} %% 173 max %%
+      {BraveInit NBullets}
+      {ZombiesInit NZombies}
       {Lib.newPortObject FRoom {InitMap Map}}
    end
    
@@ -366,7 +364,7 @@ define
    end
 
    fun {InitMap Map}
-      ResMap Resp
+      ResMap
       fun {UsableSpace}
 	 Resp in
 	 {Port.sendRecv EmptyCells request Resp}
@@ -384,8 +382,7 @@ define
 	 end
       end
    in
-      {Port.sendRecv Zombies getAmount Resp}
-      ResMap = {UpdateMap {InitZombieMap Map Resp} Door.x Door.y DOOR#BRAVE}
+      ResMap = {UpdateMap {InitZombieMap Map NZombies} Door.x Door.y DOOR#BRAVE}
       {Send EmptyCells empty}
       ResMap
    end
@@ -400,7 +397,7 @@ define
    {Window bind(event:"<Right>" action:Brave#r(1 0))}
    {Window bind(event:"<space>" action:Brave#collect)}
 
-   proc {BraveInit}
+   proc {BraveInit NBullets}
       fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
 	 Resp in
 	 case Msg
@@ -408,11 +405,12 @@ define
 	 of r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
-	    if NextX == Door.x andthen NextY == Door.y andthen State.collected == 3 then
+	    if NextX == Door.x andthen NextY == Door.y andthen State.collected >= NItems then
 	       {Send Room endGame(true)}
 	    end
 	    {Port.sendRecv Room move(BRAVE State.x State.y State.steps NextX NextY) Resp}
 	    if Resp == ok orelse Resp == laststep then
+	       %% Door special case %%
 	       if {CheckCoordinates NextX NextY} == false andthen Door.x == State.x andthen Door.y == State.y then
 		  {Send Brave r(~DX ~DY)}
 		  State
@@ -454,14 +452,13 @@ define
       end
    in
       Brave = {Lib.newPortObject FBrave
-       state(x:Door.x y:Door.y steps:0 collected:0 bullets:3)}
+       state(x:Door.x y:Door.y steps:0 collected:0 bullets:NBullets)}
    end
 
    %% ----- Zombie Definitions ----- %%
    Zombies
-
-   
    ZOMBIE_MAXSTEP = 3
+   
    NORTH = 0
    SOUTH = 1
    WEST = 2
