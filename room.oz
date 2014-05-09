@@ -84,6 +84,7 @@ define
    Window = {QTk.build Desc}
 
    Door
+   Collect = 3
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
@@ -94,6 +95,7 @@ define
 	       if Resp == ok orelse Resp == laststep orelse Resp == destroyable then
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
+		  {Send Brave shoot#{CheckNearby Comp Map NewX NewY}}
 		  {UpdateMoveMap Map OldX OldY NewX NewY}
 	       else Map
 	       end
@@ -109,14 +111,13 @@ define
 	    end
 	 [] zombiesTurn then
 	    {TurnText set(text:"Zombies' turn")}
-	    for I in 1..{Width Zombies} do
-	       {Send Zombies.I zombie}
-	    end
+	    {Send Zombies sendAll(zombie)}
 	    {AdjoinAt Map zombiesDone 0}
-	 [] zombieDone then ZDone in
+	 [] zombieDone then ZDone Resp in
 	    ZDone = Map.zombiesDone+1
 	    %% All the zombies are done %%
-	    if ZDone == {Width Zombies} then
+	    {Port.sendRecv Zombies getAmount Resp}
+	    if ZDone == Resp then
 	       {Send Brave brave}
 	       {TurnText set(text:"Brave's turn")}
 	       {Record.subtract Map zombiesDone}
@@ -126,6 +127,14 @@ define
 	 [] inaccessible(X Y)#Resp then
 	    Resp = {ZRand Map X Y Faces}
 	    Map
+	 [] zombieKill#L then
+	    {KillZombies Map L}
+	 [] endGame#B then
+	    if B then
+	       {TurnText set(text:"You won !")}
+	    else
+	       {TurnText set(text:"You died !")}
+	    end
 	 else Map
 	 end
       end
@@ -191,6 +200,16 @@ define
 			image:Image anchor:nw)}
    end
 
+   fun {KillZombies Map L}
+      case L
+      of nil then Map
+      [] X#Y|T then Comp in
+	 Comp = {GetComponent Map X Y}
+	 {DrawImg X Y Comp}
+	 {KillZombies {UpdateMap Map X Y Comp} T}
+      end
+   end
+
    fun {CheckAction Action}
       case Action
       of movement(comp:Comp steps:Steps compXY:CompXY) then
@@ -252,35 +271,38 @@ define
       X > 0 andthen Y > 0 andthen X =< ColAm andthen Y =< RowAm
    end
 
-   fun {CheckNearby Map X Y}
-      fun {CNHelper Map X Y I}
+   fun {CheckNearby Comp Map X Y}
+      Check
+      fun {CNHelper Check Map X Y I}
 	 NextX NextY in
-	 case I
-	 of 1 then
+	 if I == 1 then
 	    NextX = X-1
 	    NextY = Y
-	 [] 2 then
+	 elseif I == 2 then
 	    NextX = X+1
 	    NextY = Y
-	 [] 3 then
+	 elseif I == 3 then
 	    NextX = X
 	    NextY = Y-1
-	 [] 4 then
+	 elseif I == 4 then
 	    NextX = X
 	    NextY = Y+1
 	 end
 	 if I > 4 then nil
 	 else
-	    if {GetUnderlay Map X Y} == ZOMBIE orelse {GetUnderlay Map X Y} == BRAVE
+	    if {GetUnderlay Map X Y} == Check
 	    then
-	       NextX#NextY|{CNHelper Map X Y I+1}
+	       NextX#NextY|{CNHelper Check Map X Y I+1}
 	    else
-	       {CNHelper Map X Y I+1}
+	       {CNHelper Check Map X Y I+1}
 	    end
 	 end
       end
    in
-      {CNHelper Map X Y 1}
+      if Comp == BRAVE then Check = ZOMBIE
+      else Check = BRAVE
+      end
+      {CNHelper Check Map X Y 1}
    end
 
    fun {IsInaccessible Map X Y}
@@ -315,7 +337,7 @@ define
    end
 
    fun {InitMap Map}
-      ResMap
+      ResMap Resp
       fun {UsableSpace}
 	 Resp in
 	 {Port.sendRecv EmptyCells request Resp}
@@ -325,7 +347,7 @@ define
 	 case {UsableSpace}
 	 of X#Y then
 	    {DrawImg X Y ZOMBIE}
-	    {Send Zombies.N init(X Y)}
+	    {Send Zombies send(N init(X Y))}
 	    if N == 1 then {UpdateMap Map X Y {GetComponent Map X Y}#ZOMBIE}
 	    else {InitZombieMap {UpdateMap Map X Y {GetComponent Map X Y}#ZOMBIE} N-1}
 	    end
@@ -333,7 +355,8 @@ define
 	 end
       end
    in
-      ResMap = {UpdateMap {InitZombieMap Map {Width Zombies}} Door.x Door.y DOOR#BRAVE}
+      {Port.sendRecv Zombies getAmount Resp}
+      ResMap = {UpdateMap {InitZombieMap Map Resp} Door.x Door.y DOOR#BRAVE}
       {Send EmptyCells empty}
       ResMap
    end
@@ -369,6 +392,13 @@ define
 	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
 	    else State
 	    end
+	 [] shoot#L then
+	    case L
+	    of nil then State
+	    else
+	       {Send Room zombieKill#L}
+	       State
+	    end
 	 [] brave then
 	    {AdjoinList State [steps#0]}
 	 else State
@@ -381,6 +411,8 @@ define
 
    %% ----- Zombie Definitions ----- %%
    Zombies
+
+   
    ZOMBIE_MAXSTEP = 3
    NORTH = 0
    SOUTH = 1
@@ -423,8 +455,8 @@ define
 	 of init(X Y) then {AdjoinList State [x#X y#Y]}
 	 [] zombie then
 	    case State.lastAction
-	    of move then {Send Zombies.ZNumber {ZCompass State.facing}}
-	    [] destroy then {Send Zombies.ZNumber destroy}
+	    of move then {Send Zombies send(ZNumber {ZCompass State.facing})}
+	    [] destroy then {Send Zombies send(ZNumber destroy)}
 	    end
 	    {AdjoinAt State steps 0}
 	 [] r(DX DY) then NextX NextY in
@@ -437,18 +469,18 @@ define
 	    elseif Resp == inaccessible then Resp in
 	       {Port.sendRecv Room inaccessible(State.x State.y) Resp}
 	       if Resp == ~1 then
-		  {Send Zombies.ZNumber {ZCompass State.facing}}
+		  {Send Zombies send(ZNumber {ZCompass State.facing})}
 		  {AdjoinAt State steps State.steps+1}
 	       else
-		  {Send Zombies.ZNumber {ZCompass Resp}}
+		  {Send Zombies send(ZNumber {ZCompass Resp})}
 		  {AdjoinAt State facing Resp}
 	       end
 	    else
 	       if Resp == ok then
-		  {Send Zombies.ZNumber {ZCompass State.facing}}
+		  {Send Zombies send(ZNumber {ZCompass State.facing})}
 		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	       elseif Resp == destroyable then
-		  {Send Zombies.ZNumber destroy}
+		  {Send Zombies send(ZNumber destroy)}
 		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	       else
 		  State
@@ -458,16 +490,16 @@ define
 	    {Port.sendRecv Room interact(ZOMBIE State.x State.y State.steps) Resp}
 	    case Resp
 	    of ok then
-	       {Send Zombies.ZNumber {ZCompass State.facing}}
+	       {Send Zombies send(ZNumber {ZCompass State.facing})}
 	       {AdjoinList State [steps#State.steps+1]}
 	    [] maxstep then
 	       {Send Room zombieDone}
 	       {AdjoinAt State lastAction destroy}
 	    [] dumb then
-	       {Send Zombies.ZNumber {ZCompass State.facing}}
+	       {Send Zombies send(ZNumber {ZCompass State.facing})}
 	       State
 	    [] uncollectible then
-	       {Send Zombies.ZNumber {ZCompass State.facing}}
+	       {Send Zombies send(ZNumber {ZCompass State.facing})}
 	       State
 	    else State
 	    end
@@ -484,8 +516,26 @@ define
       in
 	 {ZGHelper FZ N 1}
       end
+      fun {FZombies Msg State}
+	 case Msg
+	 of send(I M) then
+	    {Send State.I M}
+	    State
+	 [] sendAll(M) then
+	    for I in 1..{Width State} do
+	       {Send State.I M}
+	    end
+	    State
+	 [] getAmount#Resp then
+	    Resp = {Width State}
+	    State
+	 [] remove(I) then
+	    {Record.subtract State I}
+	 else State
+	 end
+      end
    in
-      Zombies = {List.toTuple zombies {ZGenerator FZombie N}}
+      Zombies = {Lib.newPortObject FZombies {List.toTuple zombies {ZGenerator FZombie N}}}
    end
 in
    Room = {RoomInit Map}
