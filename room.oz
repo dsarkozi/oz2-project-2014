@@ -154,9 +154,9 @@ define
 	    Map
 	 [] endGame(B) then
 	    if B then
-	       {TurnTXT set(text:"Winner !")}
+	       {TurnTXT set(text:"Winner ! Close the window and celebrate your glory !")}
 	    else
-	       {TurnTXT set(text:"Loser !")}
+	       {TurnTXT set(text:"Loser ! Close the window and live the rest of your life in shame !")}
 	    end
 	    {Window wait}
 	    {Application.exit 0}
