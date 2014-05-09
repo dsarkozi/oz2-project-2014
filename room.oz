@@ -593,7 +593,11 @@ define
 		if I == width then skip
 		else Resp in
 		   {Port.sendRecv S getKilled(X Y) Resp}
-		   if Resp > 0 then SState = {Record.subtract State I}
+		   if Resp > 0 then
+		      SState = {Record.subtract State I}
+		      if SState.width-1 == 0 then
+			 {Send Room endGame(true)}
+		      end
 		   end
 		end
 	     end}
