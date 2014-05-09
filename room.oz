@@ -46,6 +46,12 @@ define
 			  Resp = {Nth State.list I}
 			  {AdjoinList State [length#State.length-1 list#{DropUnit State.list I}]}
 		       end
+		    [] remove(X Y) then N S W E in
+		       N = {List.subtract State.list X#(Y-1)}
+		       S = {List.subtract N X#(Y+1)}
+		       W = {List.subtract S (X-1)#Y}
+		       E = {List.subtract W (X+1)#Y}
+		       {AdjoinList State [length#State.length-1 list#E]}
 		    [] empty then emptied
 		    else State
 		    end
@@ -207,6 +213,7 @@ define
 	 RowAm = {Width Map}
 	 ColAm = {Width Map.1}
 	 {DrawRows Map 1}
+	 {Send EmptyCells remove(Door.x Door.y)}
       else skip
       end
    end
