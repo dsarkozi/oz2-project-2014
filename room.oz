@@ -252,6 +252,37 @@ define
       X > 0 andthen Y > 0 andthen X =< ColAm andthen Y =< RowAm
    end
 
+   fun {CheckNearby Map X Y}
+      fun {CNHelper Map X Y I}
+	 NextX NextY in
+	 case I
+	 of 1 then
+	    NextX = X-1
+	    NextY = Y
+	 [] 2 then
+	    NextX = X+1
+	    NextY = Y
+	 [] 3 then
+	    NextX = X
+	    NextY = Y-1
+	 [] 4 then
+	    NextX = X
+	    NextY = Y+1
+	 end
+	 if I > 4 then nil
+	 else
+	    if {GetUnderlay Map X Y} == ZOMBIE orelse {GetUnderlay Map X Y} == BRAVE
+	    then
+	       NextX#NextY|{CNHelper Map X Y I+1}
+	    else
+	       {CNHelper Map X Y I+1}
+	    end
+	 end
+      end
+   in
+      {CNHelper Map X Y 1}
+   end
+
    fun {IsInaccessible Map X Y}
       {GetComponent Map X Y} == WALL orelse {GetComponent Map X Y} == DOOR
       orelse {GetUnderlay Map X Y} == BRAVE orelse {GetUnderlay Map X Y} == ZOMBIE
