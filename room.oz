@@ -119,13 +119,16 @@ define
 	    else
 	       {AdjoinAt Map zombiesDone ZDone}
 	    end
+	 [] inaccessible(X Y)#Resp then
+	    Resp = {ZRand Map X Y Faces}
+	    Map
 	 else Map
 	 end
       end
    in
       {DrawMap Map}
       {BraveInit}
-      {ZombiesInit 2} %% 173 max %%
+      {ZombiesInit 10} %% 173 max %%
       {Lib.newPortObject FRoom {InitMap Map}}
    end
    
@@ -245,6 +248,11 @@ define
       X > 0 andthen Y > 0 andthen X =< ColAm andthen Y =< RowAm
    end
 
+   fun {IsInaccessible Map X Y}
+      {GetComponent Map X Y} == WALL orelse {GetComponent Map X Y} == DOOR
+      orelse {GetUnderlay Map X Y} == BRAVE orelse {GetUnderlay Map X Y} == ZOMBIE
+   end
+
    fun {GetUnderlay Map X Y}
       case Map.Y.X
       of _#Live then Live
@@ -343,9 +351,23 @@ define
    SOUTH = 1
    WEST = 2
    EAST = 3
+   Faces = [NORTH SOUTH WEST EAST]
 
-   fun {ZRand}
-      {OS.rand} mod 4
+   fun {ZRand Map X Y Faces}
+      if Faces == nil then ~1
+      else
+	 Rand Compass Face in
+	 Rand = {OS.rand} mod {Length Faces} + 1
+	 Face = {Nth Faces Rand}
+	 Compass = {ZCompass Face}
+	 case Compass
+	 of r(DX DY) then
+	    if {IsInaccessible Map X+DX Y+DY} then
+	       {ZRand Map X Y {List.subtract Faces Face}}
+	    else Face
+	    end
+	 end
+      end
    end
    
    fun {ZCompass D}
@@ -377,10 +399,15 @@ define
 	    if Resp == maxstep then
 	       {Send Room zombieDone}
 	       {AdjoinAt State lastAction move}
-	    elseif Resp == inaccessible then ZR in
-	       ZR = {ZRand}
-	       {Send Zombies.ZNumber {ZCompass ZR}}
-	       {AdjoinAt State facing ZR}
+	    elseif Resp == inaccessible then Resp in
+	       {Port.sendRecv Room inaccessible(State.x State.y) Resp}
+	       if Resp == ~1 then
+		  {Send Zombies.ZNumber {ZCompass State.facing}}
+		  {AdjoinAt State steps State.steps+1}
+	       else
+		  {Send Zombies.ZNumber {ZCompass Resp}}
+		  {AdjoinAt State facing Resp}
+	       end
 	    else
 	       if Resp == ok then
 		  {Send Zombies.ZNumber {ZCompass State.facing}}
@@ -416,7 +443,7 @@ define
 	 fun {ZGHelper FZ N I}
 	    if I > N then nil
 	    else
-	       {Lib.newPortObject FZ state('#':I steps:0 facing:{ZRand} lastAction:move)}|{ZGHelper FZ N I+1}
+	       {Lib.newPortObject FZ state('#':I steps:0 facing:{OS.rand} mod 4 lastAction:move)}|{ZGHelper FZ N I+1}
 	    end
 	 end
       in
