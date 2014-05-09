@@ -90,18 +90,26 @@ define
       fun {FRoom Msg Map}
 	 case Msg
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
-	    if {CheckCoordinates NewX NewY} then
-	       Resp = {CheckAction movement(comp:Comp steps:Steps compXY:{GetUnderlay Map NewX NewY})}
-	       if Resp == ok orelse Resp == laststep orelse Resp == destroyable then
+	    if {CheckCoordinates NewX NewY} then CA in
+	       CA = {CheckAction movement(comp:Comp steps:Steps compXY:{GetUnderlay Map NewX NewY})}
+	       if CA == ok orelse CA == laststep orelse CA == destroyable then CN in
+		  CN = {CheckNearby Comp Map NewX NewY}
+		  if CN \= nil then
+		     if Comp == BRAVE then Resp = CA
+		     elseif Comp == ZOMBIE then Resp = unit
+		     end
+		     {Send Room zombieDone}
+		     {Send Brave shoot(NewX NewY CN)}
+		  else Resp = CA
+		  end
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
-		  {Send Brave shoot(NewX NewY {CheckNearby Comp Map NewX NewY})}
 		  {UpdateMoveMap Map OldX OldY NewX NewY}
-	       else Map
+	       else
+		  Resp = CA
+		  Map
 	       end
-	    else
-	       Resp = failure
-	       Map
+	    else raise 'Out of map bounds' end
 	    end
 	 [] interact(Comp X Y Steps)#Resp then
 	    Resp = {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
@@ -128,7 +136,7 @@ define
 	    end
 	    %% All the zombies are done %%
 	    {Port.sendRecv Zombies getAmount Resp}
-	    if ZDone == Resp then
+	    if ZDone >= Resp then
 	       {Send Brave brave}
 	       {TurnText set(text:"Brave's turn")}
 	       {Record.subtract Map zombiesDone}
@@ -497,6 +505,8 @@ define
 		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	       elseif Resp == destroyable then
 		  {Send Zombies send(ZNumber destroy)}
+		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	       elseif Resp == unit then
 		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	       else
 		  State
