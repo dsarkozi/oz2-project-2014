@@ -88,7 +88,7 @@ define
 	 case Msg
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
 	    if {CheckCoordinates NewX NewY} then
-	       Resp = {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
+	       Resp = {CheckAction movement(comp:Comp steps:Steps compXY:{GetUnderlay Map NewX NewY})}
 	       if Resp == ok orelse Resp == laststep orelse Resp == destroyable then
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
@@ -125,7 +125,7 @@ define
    in
       {DrawMap Map}
       {BraveInit}
-      {ZombiesInit 1} %% 173 max %%
+      {ZombiesInit 2} %% 173 max %%
       {Lib.newPortObject FRoom {InitMap Map}}
    end
    
@@ -244,6 +244,13 @@ define
    fun {CheckCoordinates X Y}
       X > 0 andthen Y > 0 andthen X =< ColAm andthen Y =< RowAm
    end
+
+   fun {GetUnderlay Map X Y}
+      case Map.Y.X
+      of _#Live then Live
+      else {GetComponent Map X Y}
+      end
+   end
    
    fun {GetComponent Map X Y}
       case Map.Y.X
@@ -342,8 +349,8 @@ define
    end
    
    fun {ZCompass D}
-      if D == NORTH then r(0 1)
-      elseif D == SOUTH then r(0 ~1)
+      if D == NORTH then r(0 ~1)
+      elseif D == SOUTH then r(0 1)
       elseif D == WEST then r(~1 0)
       elseif D == EAST then r(1 0)
       else r(0 0)
@@ -352,6 +359,7 @@ define
    
    proc {ZombiesInit N}
       fun {FZombie Msg State} %% state('#': x: y: steps: facing: lastAction: )
+	 {Delay 100} %% Smooth move delay
 	 Resp ZNumber in
 	 ZNumber = State.'#'
 	 case Msg
@@ -368,14 +376,14 @@ define
 	    {Port.sendRecv Room move(ZOMBIE State.x State.y State.steps NextX NextY) Resp}
 	    if Resp == maxstep then
 	       {Send Room zombieDone}
-	       State
+	       {AdjoinAt State lastAction move}
 	    elseif Resp == inaccessible then ZR in
 	       ZR = {ZRand}
 	       {Send Zombies.ZNumber {ZCompass ZR}}
 	       {AdjoinAt State facing ZR}
 	    else
 	       if Resp == ok then
-		  {Send Zombies.ZNumber r(DX DY)}
+		  {Send Zombies.ZNumber {ZCompass State.facing}}
 		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	       elseif Resp == destroyable then
 		  {Send Zombies.ZNumber destroy}
@@ -392,7 +400,7 @@ define
 	       {AdjoinList State [steps#State.steps+1]}
 	    [] maxstep then
 	       {Send Room zombieDone}
-	       State
+	       {AdjoinAt State lastAction destroy}
 	    [] dumb then
 	       {Send Zombies.ZNumber {ZCompass State.facing}}
 	       State
@@ -407,7 +415,7 @@ define
       fun {ZGenerator FZ N}
 	 if N == 0 then nil
 	 else
-	    {Lib.newPortObject FZ state('#':N steps:0 facing:{OS.rand} mod 4 lastAction:move)}|{ZGenerator FZ N-1}
+	    {Lib.newPortObject FZ state('#':N steps:0 facing:{ZRand} lastAction:move)}|{ZGenerator FZ N-1}
 	 end
       end
    in
