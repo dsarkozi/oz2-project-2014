@@ -95,7 +95,7 @@ define
 	       if Resp == ok orelse Resp == laststep orelse Resp == destroyable then
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
-		  {Send Brave shoot#{CheckNearby Comp Map NewX NewY}}
+		  {Send Brave shoot(NewX NewY {CheckNearby Comp Map NewX NewY})}
 		  {UpdateMoveMap Map OldX OldY NewX NewY}
 	       else Map
 	       end
@@ -109,12 +109,23 @@ define
 	       {UpdateMap Map X Y FLOOR#Comp}
 	    else Map
 	    end
-	 [] zombiesTurn then
+	 [] zombiesTurn then Resp in
 	    {TurnText set(text:"Zombies' turn")}
-	    {Send Zombies sendAll(zombie)}
-	    {AdjoinAt Map zombiesDone 0}
+	    {Port.sendRecv Zombies getAmount Resp}
+	    if Resp == 0 then
+	       {Send Brave brave}
+	       {TurnText set(text:"Brave's turn")}
+	       Map
+	    else
+	       {Send Zombies sendAll(zombie)}
+	       {AdjoinAt Map zombiesDone 0}
+	    end
 	 [] zombieDone then ZDone Resp in
-	    ZDone = Map.zombiesDone+1
+	    if {HasFeature Map zombiesDone} then
+	       ZDone = Map.zombiesDone+1
+	    else
+	       ZDone = 1
+	    end
 	    %% All the zombies are done %%
 	    {Port.sendRecv Zombies getAmount Resp}
 	    if ZDone == Resp then
@@ -141,7 +152,7 @@ define
    in
       {DrawMap Map}
       {BraveInit}
-      {ZombiesInit 10} %% 173 max %%
+      {ZombiesInit 5} %% 173 max %%
       {Lib.newPortObject FRoom {InitMap Map}}
    end
    
@@ -205,6 +216,7 @@ define
       of nil then Map
       [] X#Y|T then Comp in
 	 Comp = {GetComponent Map X Y}
+	 {Send Zombies killZombie(X Y)}
 	 {DrawImg X Y Comp}
 	 {KillZombies {UpdateMap Map X Y Comp} T}
       end
@@ -290,7 +302,7 @@ define
 	 end
 	 if I > 4 then nil
 	 else
-	    if {GetUnderlay Map X Y} == Check
+	    if {GetUnderlay Map NextX NextY} == Check
 	    then
 	       NextX#NextY|{CNHelper Check Map X Y I+1}
 	    else
@@ -363,7 +375,7 @@ define
 
    %% ----- Brave Definitions ----- %%
    Brave
-   BRAVE_MAXSTEP = 2
+   BRAVE_MAXSTEP = 5
    
    {Window bind(event:"<Up>" action:Brave#r(0 ~1))}
    {Window bind(event:"<Left>" action:Brave#r(~1 0))}
@@ -392,11 +404,15 @@ define
 	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
 	    else State
 	    end
-	 [] shoot#L then
+	 [] shoot(X Y L) then
 	    case L
 	    of nil then State
 	    else
-	       {Send Room zombieKill#L}
+	       if State.x == X andthen State.y == Y then
+		  {Send Room zombieKill#L}
+	       else
+		  {Send Room zombieKill#[X#Y]}
+	       end
 	       State
 	    end
 	 [] brave then
@@ -503,6 +519,12 @@ define
 	       State
 	    else State
 	    end
+	 [] getKilled(X Y)#Resp then
+	    if State.x == X andthen State.y == Y then
+	       Resp = ZNumber
+	    else Resp = ~1
+	    end
+	    State
 	 else State
 	 end
       end
@@ -519,23 +541,40 @@ define
       fun {FZombies Msg State}
 	 case Msg
 	 of send(I M) then
-	    {Send State.I M}
-	    State
-	 [] sendAll(M) then
-	    for I in 1..{Width State} do
+	    if {HasFeature State I} then
 	       {Send State.I M}
 	    end
 	    State
-	 [] getAmount#Resp then
-	    Resp = {Width State}
+	 [] sendRecv(I M R) then
+	    {Port.sendRecv State.I M R}
 	    State
-	 [] remove(I) then
-	    {Record.subtract State I}
+	 [] sendAll(M) then
+	    {Record.forAllInd State
+	     proc {$ I S}
+		if I == width then skip
+		else {Send S M}
+		end
+	     end }
+	    State
+	 [] killZombie(X Y) then SState in
+	    {Record.forAllInd State
+	     proc {$ I S}
+		if I == width then skip
+		else Resp in
+		   {Port.sendRecv S getKilled(X Y) Resp}
+		   if Resp > 0 then SState = {Record.subtract State I}
+		   end
+		end
+	     end}
+	    {AdjoinAt SState width SState.width-1}
+	 [] getAmount#Resp then
+	    Resp = State.width
+	    State
 	 else State
 	 end
       end
    in
-      Zombies = {Lib.newPortObject FZombies {List.toTuple zombies {ZGenerator FZombie N}}}
+      Zombies = {Lib.newPortObject FZombies {AdjoinAt {List.toTuple zombies {ZGenerator FZombie N}} width N}}
    end
 in
    Room = {RoomInit Map}
