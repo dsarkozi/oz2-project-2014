@@ -18,6 +18,7 @@ define
    Room
    Canvas
    TurnText
+   BulletsTXT
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
 	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
 	     r(1 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
@@ -74,12 +75,12 @@ define
    FloorIMG = {QTk.newImage photo(file:CD#'/images/floor.gif')}
    WallIMG = {QTk.newImage photo(file:CD#'/images/wall.gif')}
    DoorIMG = {QTk.newImage photo(file:CD#'/images/door.gif')}
-   
+
    Desc = td(title:"ZombieLand"
 	     lr(glue:nwe
 		label(glue:nw text:"Collectables:") label(glue:nw text:"2/3")
 		label(glue:n text:"Brave's turn" handle:TurnText)
-		label(glue:ne text:"Bullets:") label(glue:ne text:3))
+		label(glue:ne text:"Bullets:") label(glue:ne text:3 handle:BulletsTXT))
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
@@ -148,12 +149,17 @@ define
 	    Map
 	 [] zombieKill#L then
 	    {KillZombies Map L}
-	 [] endGame#B then
+	 [] bullets(V) then
+	    {BulletsTXT set(text:V)}
+	    Map
+	 [] endGame(B) then
 	    if B then
-	       {TurnText set(text:"You won !")}
+	       {TurnText set(text:"Winner !")}
 	    else
-	       {TurnText set(text:"You died !")}
+	       {TurnText set(text:"Loser !")}
 	    end
+	    {Canvas tkClose()}
+	    Map
 	 else Map
 	 end
       end
@@ -416,12 +422,17 @@ define
 	    case L
 	    of nil then State
 	    else
-	       if State.x == X andthen State.y == Y then
-		  {Send Room zombieKill#L}
+	       {Send Room bullets(State.bullets-1)}
+	       if State.bullets-1 < 0 then
+		  {Send Room endGame(false)}
 	       else
-		  {Send Room zombieKill#[X#Y]}
+		  if State.x == X andthen State.y == Y then
+		     {Send Room zombieKill#L}
+		  else
+		     {Send Room zombieKill#[X#Y]}
+		  end
 	       end
-	       State
+	       {AdjoinAt State bullets State.bullets-1}
 	    end
 	 [] brave then
 	    {AdjoinList State [steps#0]}
