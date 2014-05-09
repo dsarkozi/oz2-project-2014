@@ -88,36 +88,39 @@ define
 	 case Msg
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
 	    if {CheckCoordinates NewX NewY} then
-	       if {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
-	       then
+	       Resp = {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
+	       if Resp == ok orelse Resp == laststep then
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
-		  Resp = ok
 		  {UpdateMoveMap Map OldX OldY NewX NewY}
-	       else
-		  Resp = failure
-		  Map
+	       else Map
 	       end
 	    else
 	       Resp = failure
 	       Map
 	    end
 	 [] interact(Comp X Y Steps)#Resp then
-	    if {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
-	    then
-	       Resp = ok
+	    Resp = {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
+	    if Resp == ok orelse Resp == laststep then
 	       {UpdateMap Map X Y FLOOR#Comp}
-	    else
-	       Resp = failure
-	       Map
+	    else Map
 	    end
 	 [] zombiesTurn then
-	    for I in 1..{Width Zombies} do
-	       Resp in
-	       {Port.sendRecv Zombies.I zombie Resp}
-	       {Send Zombies.I {ZCompass Resp}}
-	    end
+	    %for I in 1..{Width Zombies} do
+	    %   {Send Zombies.I zombie}
+	    %end
+	    %{AdjoinAt Map zombiesDone 0}
+	    {Send Brave brave}
 	    Map
+	 [] zombieDone then ZDone in
+	    ZDone = Map.zombiesDone+1
+	    %% All the zombies are done %%
+	    if ZDone = {Width Zombies} then
+	       {Send Brave brave}
+	       {Record.subtract Map zombiesDone}
+	    else
+	       {AdjoinAt Map zombiesDone ZDone}
+	    end
 	 else Map
 	 end
       end
@@ -187,20 +190,56 @@ define
       case Action
       of movement(comp:Comp steps:Steps compXY:CompXY) then
 	 if Comp == BRAVE then
-	    Steps \= BRAVE_MAXSTEP andthen CompXY \= WALL
-	    andthen CompXY \= ZOMBIE andthen CompXY \= BRAVE
+	    if Steps == BRAVE_MAXSTEP then maxstep
+	    else
+	       if CompXY \= WALL andthen CompXY \= ZOMBIE andthen CompXY \= BRAVE
+	       then
+		  if Steps+1 == BRAVE_MAXSTEP then laststep
+		  else ok
+		  end
+	       else inaccessible
+	       end
+	    end
+	 elseif Comp == ZOMBIE then Destroyable in
+	    Destroyable = (CompXY == FOOD orelse CompXY == BULLETS orelse CompXY == MEDS)
+	    if Steps == ZOMBIE_MAXSTEP then maxstep
+	    else
+	       if CompXY \= WALL andthen CompXY \= DOOR
+		  andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
+	       then
+		  if Destroyable then destroyable
+		  else ok
+		  end
+	       else inaccessible
+	       end
+	    end
+	 else failure
+	 end
+      [] interaction(comp:Comp steps:Steps compXY:CompXY) then Collectible in
+	 Collectible = (CompXY == FOOD orelse CompXY == BULLETS orelse CompXY == MEDS)
+	 if Comp == BRAVE then
+	    if Steps == BRAVE_MAXSTEP then maxstep
+	    else
+	       if Collectible then
+		  if Steps+1 == BRAVE_MAXSTEP then laststep
+		  else ok
+		  end
+	       else uncollectible
+	       end
+	    end
 	 elseif Comp == ZOMBIE then
-	    Steps \= ZOMBIE_MAXSTEP andthen CompXY \= WALL andthen CompXY \= DOOR
-	    andthen CompXY \= BRAVE andthen CompXY \= ZOMBIE
-	 else false
+	    if Steps == ZOMBIE_MAXSTEP then maxstep
+	    else
+	       if Collectible then
+		  if {OS.rand} mod 5 == 0 then ok
+		  else dumb
+		  end
+	       else uncollectible
+	       end
+	    end
+	 else failure
 	 end
-      [] interaction(comp:Comp steps:Steps compXY:CompXY) then Collectable in
-	 Collectable = (CompXY == FOOD orelse CompXY == BULLETS orelse CompXY == MEDS)
-	 if Comp == BRAVE then Steps \= BRAVE_MAXSTEP andthen Collectable
-	 elseif Comp == ZOMBIE then Steps \= ZOMBIE_MAXSTEP andthen Collectable
-	 else false
-	 end
-      else false
+      else failure
       end
    end
 
@@ -260,7 +299,6 @@ define
    {Window bind(event:"<Down>" action:Brave#r(0 1))}
    {Window bind(event:"<Right>" action:Brave#r(1 0))}
    {Window bind(event:"<space>" action:Brave#collect)}
-   {Window bind(event:"<Return>" action:Brave#endTurn)}
 
    proc {BraveInit}
       fun {FBrave Msg State} %% state(x: y: steps: collected: bullets: )
@@ -271,25 +309,26 @@ define
 	    NextX = State.x + DX
 	    NextY = State.y + DY
 	    {Port.sendRecv Room move(BRAVE State.x State.y State.steps NextX NextY) Resp}
-	    if Resp == ok then
+	    if Resp == ok orelse Resp == laststep then
+	       if Resp == laststep then {Send Room zombiesTurn} end
 	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
 	    else State
 	    end
 	 [] collect then
 	    {Port.sendRecv Room interact(BRAVE State.x State.y State.steps) Resp}
-	    if Resp == ok then
+	    if Resp == ok orelse Resp == laststep then
+	       if Resp == laststep then {Send Room zombiesTurn} end
 	       {AdjoinList State [steps#State.steps+1 collected#State.collected+1]}
 	    else State
 	    end
-	 [] endTurn then
-	    {Send Room zombiesTurn}
+	 [] brave then
 	    {AdjoinList State [steps#0]}
 	 else State
 	 end
       end
    in
       Brave = {Lib.newPortObject FBrave
-       state(x:Door.x y:Door.y steps:0 collected:0 bullets:0)}
+       state(x:Door.x y:Door.y steps:0 collected:0 bullets:3)}
    end
 
    %% ----- Zombie Definitions ----- %%
@@ -300,6 +339,10 @@ define
    WEST = 2
    EAST = 3
 
+   fun {ZRand}
+      {ZCompass ({OS.rand} mod 4)}
+   end
+   
    fun {ZCompass D}
       if D == NORTH then r(0 1)
       elseif D == SOUTH then r(0 ~1)
@@ -310,38 +353,57 @@ define
    end
    
    proc {ZombiesInit N}
-      fun {FZombie Msg State} %% state(x: y: steps: facing: )
-	 Resp in
+      fun {FZombie Msg State} %% state('#': x: y: steps: facing: lastAction: )
+	 Resp ZNumber in
+	 ZNumber = State.'#'
 	 case Msg
 	 of init(X Y) then {AdjoinList State [x#X y#Y]}
-	 [] zombie#RoomResp then
-	    RoomResp = State.facing
+	 [] zombie then
+	    case State.lastAction
+	    of move then {Send Zombies.ZNumber {ZCompass State.facing}}
+	    [] destroy then {Send Zombies.ZNumber destroy}
+	    end
 	    {AdjoinAt State steps 0}
 	 [] r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
 	    {Port.sendRecv Room move(ZOMBIE State.x State.y State.steps NextX NextY) Resp}
-	    if Resp == ok then
-	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
-	    else State
+	    if Resp == maxstep then
+	       {Send Room zombieDone}
+	       State
+	    elseif Resp == inaccessible then
+	       {Send Zombies.ZNumber {ZRand}}
+	       State
+	    else
+	       if Resp == ok then
+		  {Send Zombies.ZNumber r(DX DY)}
+		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	       elseif Resp == destroyable then
+		  {Send Zombies.ZNumber destroy}
+		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	       else
+		  State
+	       end
 	    end
 	 [] destroy then
-	    if {OS.rand} mod 5 == 0 then
-	       {Port.sendRecv Room interact(ZOMBIE State.x State.y State.steps) Resp}
-	       if Resp == ok then
-		  {AdjoinList State [steps#State.steps+1]}
-	       else State
-	       end
+	    {Port.sendRecv Room interact(ZOMBIE State.x State.y State.steps) Resp}
+	    case Resp
+	    of ok then
+	       {Send Zombies.ZNumber {ZCompass State.facing}}
+	       {AdjoinList State [steps#State.steps+1]}
+	    [] maxstep then
+	       {Send Room zombieDone}
+	       State
 	    else State
 	    end
 	 else State
 	 end
       end
       fun {ZGenerator FZ N}
-	  if N == 0 then nil
-	  else
-	     {Lib.newPortObject FZ state(steps:0 facing:{OS.rand} mod 4)}|{ZGenerator FZ N-1}
-	  end
+	 if N == 0 then nil
+	 else
+	    {Lib.newPortObject FZ state('#':N steps:0 facing:{OS.rand} mod 4 lastAction:move)}|{ZGenerator FZ N-1}
+	 end
       end
    in
       Zombies = {List.toTuple zombies {ZGenerator FZombie N}}
