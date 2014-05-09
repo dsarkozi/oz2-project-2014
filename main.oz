@@ -21,10 +21,31 @@ import
    Application
    Property
    System
-define
-   
+   Lib at 'lib.ozf'
+ export
+    map:Map
+    zombie:Zombie
+    item:Item
+    bullet:Bullet
+ define
+   Map
+   Zombie
+   Item
+   Bullet
    %% Default values
-   MAP      = map
+   MAP = map% (r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
+	    %  r(1 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	    %  r(1 0 3 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
+	    %  r(1 0 4 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1)
+	    %  r(1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 4 0 1)
+	    %  r(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
    NUMZOMBIES = 5
    ITEMS2PICK    = 5
    INITIALBULLETS    = 3
@@ -65,5 +86,9 @@ in
    {Say "Zombie:\t"#Args.zombie}
    {Say "Item:\t"#Args.item}
    {Say "Bullet:\t"#Args.bullet}
-   {Application.exit 0}
+
+   Map = {Lib.loadPickle Args.map}
+   Zombie = Args.zombie
+   Item = Args.item
+   Bullet = Args.bullet
 end

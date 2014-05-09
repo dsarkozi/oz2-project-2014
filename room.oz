@@ -3,36 +3,19 @@ import
    QTk at 'x-oz://system/wp/QTk.ozf'
    OS
    Lib at 'lib.ozf'
-export
-   room:Room
-   window:Window
-   floor:FLOOR
-   wall:WALL
-   bullets:BULLETS
-   food:FOOD
-   meds:MEDS
-   door:DOOR
-   brave:BRAVE
-   zombie:ZOMBIE
+   Main at 'main.ozf'
+   Application
 define
    Room
    Canvas
+   Map = Main.map
+   NZombies = Main.zombie
+   NItems = Main.item
+   NBullets = Main.bullet
+   
    CollectTXT
    TurnText
    BulletsTXT
-   Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
-	     r(1 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 2 0 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
-	     r(1 0 3 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 1 1 1 1 1 1 1 1 0 0 0 0 1)
-	     r(1 0 4 0 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 1)
-	     r(1 0 0 0 0 0 0 0 0 0 0 0 1 0 0 0 0 4 0 1)
-	     r(1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1))
    WidthCell = 40
    HeightCell = 40
    RowAm
@@ -176,7 +159,9 @@ define
 	    else
 	       {TurnText set(text:"Loser !")}
 	    end
+	    {Window wait}
 	    {Canvas tkClose()}
+	    {Application.exit 0}
 	    Map
 	 else Map
 	 end
