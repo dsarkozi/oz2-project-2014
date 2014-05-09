@@ -3,16 +3,16 @@ import
    QTk at 'x-oz://system/wp/QTk.ozf'
    OS
    Lib at 'lib.ozf'
-   Main at 'main.ozf'
+   Input at 'main.ozf'
    Application
 define
    Room
    Door
    Canvas
-   Map = Main.map
-   NZombies = Main.zombie
-   NItems = Main.item
-   NBullets = Main.bullet
+   Map = Input.map
+   NZombies = Input.zombie
+   NItems = Input.item
+   NBullets = Input.bullet
    
    CollectTXT
    TurnTXT
