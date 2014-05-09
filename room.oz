@@ -3,7 +3,7 @@ import
    QTk at 'x-oz://system/wp/QTk.ozf'
    OS
    Lib at 'lib.ozf'
-   Input at 'main.ozf'
+   Input at 'input.ozf'
    Application
 define
    Room
