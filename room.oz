@@ -89,7 +89,7 @@ define
 	 of move(Comp OldX OldY Steps NewX NewY)#Resp then
 	    if {CheckCoordinates NewX NewY} then
 	       Resp = {CheckAction movement(comp:Comp steps:Steps compXY:{GetComponent Map NewX NewY})}
-	       if Resp == ok orelse Resp == laststep then
+	       if Resp == ok orelse Resp == laststep orelse Resp == destroyable then
 		  {DrawImg OldX OldY {GetComponent Map OldX OldY}}
 		  {DrawImg NewX NewY Comp}
 		  {UpdateMoveMap Map OldX OldY NewX NewY}
@@ -106,16 +106,14 @@ define
 	    else Map
 	    end
 	 [] zombiesTurn then
-	    %for I in 1..{Width Zombies} do
-	    %   {Send Zombies.I zombie}
-	    %end
-	    %{AdjoinAt Map zombiesDone 0}
-	    {Send Brave brave}
-	    Map
+	    for I in 1..{Width Zombies} do
+	       {Send Zombies.I zombie}
+	    end
+	    {AdjoinAt Map zombiesDone 0}
 	 [] zombieDone then ZDone in
 	    ZDone = Map.zombiesDone+1
 	    %% All the zombies are done %%
-	    if ZDone = {Width Zombies} then
+	    if ZDone == {Width Zombies} then
 	       {Send Brave brave}
 	       {Record.subtract Map zombiesDone}
 	    else
@@ -127,7 +125,7 @@ define
    in
       {DrawMap Map}
       {BraveInit}
-      {ZombiesInit 5} %% 173 max %%
+      {ZombiesInit 1} %% 173 max %%
       {Lib.newPortObject FRoom {InitMap Map}}
    end
    
@@ -340,7 +338,7 @@ define
    EAST = 3
 
    fun {ZRand}
-      {ZCompass ({OS.rand} mod 4)}
+      {OS.rand} mod 4
    end
    
    fun {ZCompass D}
@@ -371,9 +369,10 @@ define
 	    if Resp == maxstep then
 	       {Send Room zombieDone}
 	       State
-	    elseif Resp == inaccessible then
-	       {Send Zombies.ZNumber {ZRand}}
-	       State
+	    elseif Resp == inaccessible then ZR in
+	       ZR = {ZRand}
+	       {Send Zombies.ZNumber {ZCompass ZR}}
+	       {AdjoinAt State facing ZR}
 	    else
 	       if Resp == ok then
 		  {Send Zombies.ZNumber r(DX DY)}
@@ -393,6 +392,12 @@ define
 	       {AdjoinList State [steps#State.steps+1]}
 	    [] maxstep then
 	       {Send Room zombieDone}
+	       State
+	    [] dumb then
+	       {Send Zombies.ZNumber {ZCompass State.facing}}
+	       State
+	    [] uncollectible then
+	       {Send Zombies.ZNumber {ZCompass State.facing}}
 	       State
 	    else State
 	    end
