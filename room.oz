@@ -17,6 +17,7 @@ export
 define
    Room
    Canvas
+   CollectTXT
    TurnText
    BulletsTXT
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
@@ -78,14 +79,13 @@ define
 
    Desc = td(title:"ZombieLand"
 	     lr(glue:nwe
-		label(glue:nw text:"Collectables:") label(glue:nw text:"2/3")
+		label(glue:nw text:"Collect:") label(glue:nw text:3 handle:CollectTXT)
 		label(glue:n text:"Brave's turn" handle:TurnText)
 		label(glue:ne text:"Bullets:") label(glue:ne text:3 handle:BulletsTXT))
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
 
    Door
-   Collect = 3
 
    fun {RoomInit Map}
       fun {FRoom Msg Map}
@@ -110,11 +110,29 @@ define
 		  Resp = CA
 		  Map
 	       end
-	    else raise 'Out of map bounds' end
+	       %% Door special case %%
+	    elseif Door.x == OldX andthen Door.y == OldY then DX DY NX NY in
+	       DX = OldX - NewX
+	       DY = OldY - NewY
+	       NX = OldX + DX
+	       NY = OldY + DY
+	       if {GetUnderlay Map NX NY} == ZOMBIE then
+		  {Send Room zombieDone}
+		  {Send Brave shoot(NX NY [NX#NY])}
+	       end
+	       Resp = ok
+	       Map
+	    else Map
 	    end
 	 [] interact(Comp X Y Steps)#Resp then
 	    Resp = {CheckAction interaction(comp:Comp steps:Steps compXY:{GetComponent Map X Y})}
 	    if Resp == ok orelse Resp == laststep then
+	       if Comp == BRAVE then C in
+		  C = {StringToInt {CollectTXT get($)}}
+		  if C > 0 then
+		     {CollectTXT set(text:C-1)}
+		  end
+	       end
 	       {UpdateMap Map X Y FLOOR#Comp}
 	    else Map
 	    end
@@ -242,7 +260,7 @@ define
 	 if Comp == BRAVE then
 	    if Steps == BRAVE_MAXSTEP then maxstep
 	    else
-	       if CompXY \= WALL andthen CompXY \= ZOMBIE andthen CompXY \= BRAVE
+	       if CompXY \= WALL andthen CompXY \= ZOMBIE andthen CompXY \= BRAVE andthen CompXY \= DOOR
 	       then
 		  if Steps+1 == BRAVE_MAXSTEP then laststep
 		  else ok
@@ -389,7 +407,7 @@ define
 
    %% ----- Brave Definitions ----- %%
    Brave
-   BRAVE_MAXSTEP = 5
+   BRAVE_MAXSTEP = 2
    
    {Window bind(event:"<Up>" action:Brave#r(0 ~1))}
    {Window bind(event:"<Left>" action:Brave#r(~1 0))}
@@ -405,10 +423,20 @@ define
 	 of r(DX DY) then NextX NextY in
 	    NextX = State.x + DX
 	    NextY = State.y + DY
+	    if NextX == Door.x andthen NextY == Door.y andthen State.collected == 3 then
+	       {Send Room endGame(true)}
+	    end
 	    {Port.sendRecv Room move(BRAVE State.x State.y State.steps NextX NextY) Resp}
 	    if Resp == ok orelse Resp == laststep then
-	       if Resp == laststep then {Send Room zombiesTurn} end
-	       {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	       if {CheckCoordinates NextX NextY} == false andthen Door.x == State.x andthen Door.y == State.y then
+		  {Send Brave r(~DX ~DY)}
+		  State
+	       else
+		  if Resp == laststep then
+		     {Send Room zombiesTurn}
+		  end
+		  {AdjoinList State [x#NextX y#NextY steps#State.steps+1]}
+	       end
 	    else State
 	    end
 	 [] collect then
