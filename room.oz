@@ -17,6 +17,7 @@ export
 define
    Room
    Canvas
+   TurnText
    Map = map(r(1 1 1 1 1 1 5 1 1 1 1 1 1 1 1 1 1 1 1 1)
 	     r(1 0 0 0 0 0 0 0 0 0 0 0 0 3 0 0 0 0 0 1)
 	     r(1 0 2 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1)
@@ -77,6 +78,7 @@ define
    Desc = td(title:"ZombieLand"
 	     lr(glue:nwe
 		label(glue:nw text:"Collectables:") label(glue:nw text:"2/3")
+		label(glue:n text:"Brave's turn" handle:TurnText)
 		label(glue:ne text:"Bullets:") label(glue:ne text:3))
 	     canvas(glue:nswe bg:white handle:Canvas))
    Window = {QTk.build Desc}
@@ -106,6 +108,7 @@ define
 	    else Map
 	    end
 	 [] zombiesTurn then
+	    {TurnText set(text:"Zombies' turn")}
 	    for I in 1..{Width Zombies} do
 	       {Send Zombies.I zombie}
 	    end
@@ -115,6 +118,7 @@ define
 	    %% All the zombies are done %%
 	    if ZDone == {Width Zombies} then
 	       {Send Brave brave}
+	       {TurnText set(text:"Brave's turn")}
 	       {Record.subtract Map zombiesDone}
 	    else
 	       {AdjoinAt Map zombiesDone ZDone}
