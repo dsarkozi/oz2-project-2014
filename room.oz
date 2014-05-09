@@ -413,10 +413,14 @@ define
 	 end
       end
       fun {ZGenerator FZ N}
-	 if N == 0 then nil
-	 else
-	    {Lib.newPortObject FZ state('#':N steps:0 facing:{ZRand} lastAction:move)}|{ZGenerator FZ N-1}
+	 fun {ZGHelper FZ N I}
+	    if I > N then nil
+	    else
+	       {Lib.newPortObject FZ state('#':I steps:0 facing:{ZRand} lastAction:move)}|{ZGHelper FZ N I+1}
+	    end
 	 end
+      in
+	 {ZGHelper FZ N 1}
       end
    in
       Zombies = {List.toTuple zombies {ZGenerator FZombie N}}
